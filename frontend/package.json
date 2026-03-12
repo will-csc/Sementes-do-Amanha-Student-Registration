@@ -1,0 +1,33 @@
+{
+  "name": "sementes-do-amanha-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.83.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.542.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.1",
+    "sonner": "^1.7.4",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "@types/node": "^22.18.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.2",
+    "vite": "^5.4.19"
+  }
+}
