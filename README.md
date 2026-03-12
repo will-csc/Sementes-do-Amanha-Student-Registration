@@ -6,6 +6,10 @@ Full-stack student registration system.
 - Backend: Rust + Axum (hosted on Render)
 - Database: PostgreSQL (Supabase)
 
+## Overview
+<img width="1495" height="912" alt="image" src="https://github.com/user-attachments/assets/711392a6-4ddd-4328-b08a-6daa459d13aa" />
+<img width="1539" height="885" alt="image" src="https://github.com/user-attachments/assets/a479800e-0f67-4f0e-8ba2-a0c9be772334" />
+
 ## Features
 
 - Student registration and editing (multi-student flow supported)
