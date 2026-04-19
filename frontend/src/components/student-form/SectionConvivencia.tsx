@@ -34,9 +34,11 @@ const servicosOptions = [
 export default function SectionConvivencia({
   data,
   onChange,
+  errors,
 }: {
   data: Omit<Student, "id">;
   onChange: (field: string, value: any) => void;
+  errors?: Record<string, string | undefined>;
 }) {
   const toggleMulti = (field: "interacaoSocial" | "locaisLazer" | "servicosUtilizados", value: string) => {
     const current = data[field];
@@ -61,6 +63,7 @@ export default function SectionConvivencia({
               value={data.supervisaoDescricao}
               onChange={(v) => onChange("supervisaoDescricao", v)}
               placeholder="Quando/por quê"
+              error={errors?.supervisaoDescricao}
             />
           )}
         </div>
@@ -72,6 +75,7 @@ export default function SectionConvivencia({
           value={data.atividadesExtras}
           onChange={(v) => onChange("atividadesExtras", v)}
           placeholder="Esportes, cursos, etc."
+          error={errors?.atividadesExtras}
         />
       </div>
 
@@ -124,4 +128,3 @@ export default function SectionConvivencia({
     </div>
   );
 }
-

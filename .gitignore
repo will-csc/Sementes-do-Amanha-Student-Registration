@@ -4,6 +4,7 @@ frontend/.env
 frontend/.env.*
 
 backend/target/
+backend-rust/target/
 backend/.env
 backend/.env.*
 

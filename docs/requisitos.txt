@@ -1,0 +1,32 @@
+O que é difícil no seu processo atual?
+Tudo é feito no papel.
+
+Quem usará o sistema?
+Assistente social.
+
+Existem diferentes funções? (Administrador, professor, voluntário)
+Conta de administrador.
+
+Quantas pessoas usarão o sistema diariamente?
+2 pessoas.
+
+O que acontece depois que um aluno se matricula?
+Apenas o registro e o acesso às informações.
+
+Os alunos podem desistir ou mudar de curso?
+O controle não é feito por curso.
+
+Você precisa que documentos sejam enviados (upload)?
+Não, apenas digitar os dados.
+
+Quantos alunos você tem atualmente?
+120 alunos.
+
+Quantos novos alunos por ano?
+Não aumenta muito.
+
+Quem fará a manutenção do sistema após a construção?
+Sim (o próprio usuário/cliente).
+
+Quem pode visualizar ou editar os dados dos alunos?
+Todos podem editar.

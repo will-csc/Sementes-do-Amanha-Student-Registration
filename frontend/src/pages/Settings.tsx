@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchBackend, useStudents } from "@/contexts/StudentContext";
 import { Check, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 
 function formatDate(iso: string | undefined) {
   if (!iso) return "-";
@@ -64,6 +66,10 @@ export default function Settings() {
     alunosAdicionados: number;
     alteracoesEmAlunos: number;
   } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<
+    | { open: false }
+    | { open: true; action: "approve" | "reject" | "delete"; id: string; email: string }
+  >({ open: false });
 
   useEffect(() => {
     let active = true;
@@ -88,28 +94,84 @@ export default function Settings() {
     };
   }, []);
 
-  const handleDeleteAccount = (id: string, email: string) => {
+  const requestDeleteAccount = (id: string, email: string) => {
     if (cannotDeleteSelfAdmin && user?.id === id) {
-      window.alert("O usuário administrador não pode excluir a própria conta.");
+      toast.error("O usuário administrador não pode excluir a própria conta.", { id: "admin:no-self-delete" });
       return;
     }
-    if (!window.confirm(`Tem certeza que deseja excluir a conta ${email}?`)) return;
-    deleteAccount(id);
+    setConfirmDialog({ open: true, action: "delete", id, email });
   };
 
-  const handleApproveAccount = (id: string, email: string) => {
-    if (!window.confirm(`Aprovar a conta ${email}?`)) return;
-    approveAccount(id);
+  const requestApproveAccount = (id: string, email: string) => {
+    setConfirmDialog({ open: true, action: "approve", id, email });
   };
 
-  const handleRejectAccount = (id: string, email: string) => {
-    if (!window.confirm(`Rejeitar a conta ${email}?`)) return;
-    rejectAccount(id);
+  const requestRejectAccount = (id: string, email: string) => {
+    setConfirmDialog({ open: true, action: "reject", id, email });
   };
+
+  const confirmAction = () => {
+    if (!confirmDialog.open) return;
+    const { action, id, email } = confirmDialog;
+    if (action === "approve") {
+      approveAccount(id);
+      toast.success(`Conta aprovada: ${email}`);
+    } else if (action === "reject") {
+      rejectAccount(id);
+      toast.success(`Conta rejeitada: ${email}`);
+    } else if (action === "delete") {
+      deleteAccount(id);
+      toast.success(`Conta excluída: ${email}`);
+    }
+    setConfirmDialog({ open: false });
+  };
+
+  const confirmTitle = confirmDialog.open
+    ? confirmDialog.action === "approve"
+      ? "Aprovar conta"
+      : confirmDialog.action === "reject"
+        ? "Rejeitar conta"
+        : "Excluir conta"
+    : "";
+
+  const confirmDescription = confirmDialog.open
+    ? confirmDialog.action === "approve"
+      ? `Deseja aprovar a conta ${confirmDialog.email}?`
+      : confirmDialog.action === "reject"
+        ? `Deseja rejeitar a conta ${confirmDialog.email}?`
+        : `Tem certeza que deseja excluir a conta ${confirmDialog.email}? Essa ação não pode ser desfeita.`
+    : "";
+
+  const confirmButtonText = confirmDialog.open
+    ? confirmDialog.action === "approve"
+      ? "Aprovar"
+      : confirmDialog.action === "reject"
+        ? "Rejeitar"
+        : "Excluir"
+    : "";
+
+  const confirmButtonVariant = confirmDialog.open && confirmDialog.action === "approve" ? "default" : "destructive";
 
   return (
     <AppLayout>
       <div className="mx-auto max-w-5xl space-y-6">
+        <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(open ? confirmDialog : { open: false })}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{confirmTitle}</DialogTitle>
+              <DialogDesc>{confirmDescription}</DialogDesc>
+            </DialogHeader>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setConfirmDialog({ open: false })}>
+                Cancelar
+              </Button>
+              <Button variant={confirmButtonVariant} onClick={confirmAction}>
+                {confirmButtonText}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="text-xl">Configurações</CardTitle>
@@ -179,7 +241,7 @@ export default function Settings() {
                       <TableCell className="hidden lg:table-cell text-muted-foreground">{formatDate(a.createdAt)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" title="Aprovar" onClick={() => handleApproveAccount(a.id, a.email)}>
+                          <Button variant="ghost" size="icon" title="Aprovar" onClick={() => requestApproveAccount(a.id, a.email)}>
                             <Check className="h-4 w-4" />
                           </Button>
                           <Button
@@ -187,7 +249,7 @@ export default function Settings() {
                             size="icon"
                             title="Rejeitar"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => handleRejectAccount(a.id, a.email)}
+                            onClick={() => requestRejectAccount(a.id, a.email)}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -247,7 +309,7 @@ export default function Settings() {
                           <div className="flex justify-end gap-1">
                             {a.status === "pending" ? (
                               <>
-                                <Button variant="ghost" size="icon" title="Aprovar" onClick={() => handleApproveAccount(a.id, a.email)}>
+                                <Button variant="ghost" size="icon" title="Aprovar" onClick={() => requestApproveAccount(a.id, a.email)}>
                                   <Check className="h-4 w-4" />
                                 </Button>
                                 <Button
@@ -255,7 +317,7 @@ export default function Settings() {
                                   size="icon"
                                   title="Rejeitar"
                                   className="text-destructive hover:text-destructive"
-                                  onClick={() => handleRejectAccount(a.id, a.email)}
+                                  onClick={() => requestRejectAccount(a.id, a.email)}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -267,7 +329,7 @@ export default function Settings() {
                               title="Excluir conta"
                               className="text-destructive hover:text-destructive"
                               disabled={cannotDeleteSelfAdmin && user?.id === a.id}
-                              onClick={() => handleDeleteAccount(a.id, a.email)}
+                              onClick={() => requestDeleteAccount(a.id, a.email)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

@@ -9,6 +9,11 @@ import logo from '@/assets/logo.png';
 import { toast } from 'sonner';
 import { Mail, Lock } from 'lucide-react';
 
+function toastError(message: string) {
+  const msg = message.trim() || 'Erro ao entrar.';
+  toast.error(msg, { id: `error:${msg}` });
+}
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +28,7 @@ const Login = () => {
         navigate('/students');
         return;
       }
-      toast.error(result.reason);
+      toastError(result.reason);
     }
   };
 

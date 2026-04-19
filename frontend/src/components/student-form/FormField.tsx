@@ -16,6 +16,21 @@ export function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
+export function onlyAsciiLettersAndDigitsUpper(value: string) {
+  return value.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+}
+
+export function formatBRL(value: string) {
+  const digits = onlyDigits(value);
+  if (!digits) return "";
+  const cents = BigInt(digits);
+  const intPart = cents / 100n;
+  const fracPart = cents % 100n;
+  const intStr = intPart.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const fracStr = fracPart.toString().padStart(2, "0");
+  return `R$ ${intStr},${fracStr}`;
+}
+
 export function formatUf(value: string) {
   return value.replace(/[^\p{L}]/gu, "").slice(0, 2).toUpperCase();
 }
@@ -72,6 +87,7 @@ export function FormField({
   className,
   inputMode,
   maxLength,
+  error,
 }: {
   label: string;
   id: string;
@@ -83,6 +99,7 @@ export function FormField({
   className?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   maxLength?: number;
+  error?: string;
 }) {
   const commonLabel = (
     <Label htmlFor={id} className="text-sm">
@@ -94,7 +111,14 @@ export function FormField({
     return (
       <div className={cn("space-y-2", className)}>
         {commonLabel}
-        <Textarea id={id} placeholder={placeholder} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
+        <Textarea
+          id={id}
+          placeholder={placeholder}
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(error && "border-destructive focus-visible:ring-destructive")}
+        />
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     );
   }
@@ -107,6 +131,7 @@ export function FormField({
           id={id}
           value={String(value ?? "")}
           onValueChange={(v) => onChange(v)}
+          className={cn(error && "border-destructive focus-visible:ring-destructive")}
         >
           <option value="">{placeholder ?? "Selecione"}</option>
           {options?.map((o) => (
@@ -115,6 +140,7 @@ export function FormField({
             </option>
           ))}
         </Select>
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     );
   }
@@ -130,7 +156,9 @@ export function FormField({
         inputMode={inputMode}
         maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
+        className={cn(error && "border-destructive focus-visible:ring-destructive")}
       />
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
