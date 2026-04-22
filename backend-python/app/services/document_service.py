@@ -12,7 +12,7 @@ MESES = {
 def preencher_documento(nome_arquivo, dados):
     # Localiza a pasta docs conforme seu Explorer
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    template_path = os.path.join(base_dir, 'docs', nome_arquivo)
+    template_path = nome_arquivo
     
     if not os.path.exists(template_path):
         raise FileNotFoundError(f"Template não encontrado: {template_path}")

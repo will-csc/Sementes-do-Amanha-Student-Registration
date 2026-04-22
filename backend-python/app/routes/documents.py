@@ -5,7 +5,7 @@ from app.services.document_service import preencher_documento
 bp = Blueprint("documents", __name__, url_prefix="/documents")
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DOCS_DIR = BASE_DIR / "docs"
+DOCS_DIR = BASE_DIR / "docs" / "forms"
 
 DOCUMENTS = {
     "ficha_acolhimento": {
@@ -48,7 +48,18 @@ def emitir_word(slug):
     dados_do_formulario = request.json 
 
     try:
-        arquivo_word = preencher_documento(meta["filename"], dados_do_formulario)
+
+        valor_front = dados_do_formulario.get("autorizacaoSaida")
+
+        if valor_front == "sim":
+            dados_do_formulario["autorizacao_saida"] = "autoriza"
+        elif valor_front == "nao":
+            dados_do_formulario["autorizacao_saida"] = "nao_autoriza"
+
+        marcar_opcoes(dados_do_formulario, "autorizacao_saida", ["autoriza", "nao_autoriza"])
+
+        caminho_arquivo = DOCS_DIR / meta["filename"]
+        arquivo_word = preencher_documento(str(caminho_arquivo), dados_do_formulario)
 
         return send_file(
             arquivo_word,
@@ -58,3 +69,9 @@ def emitir_word(slug):
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+def marcar_opcoes(dados, campo, opcoes):
+    valor = dados.get(campo)
+    for opcao in opcoes:
+        chave = f"{campo}_{opcao}"
+        dados[chave] = "X" if valor == opcao else ""
