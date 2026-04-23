@@ -31,7 +31,6 @@ const parentescoOptions = [
 const saidaOptions: { value: AutorizacaoSaida; label: string }[] = [
   { value: "sim", label: "Sim" },
   { value: "nao", label: "Não" },
-  { value: "somente-com-responsavel", label: "Somente com responsável" },
 ];
 
 export default function SectionTermos({
@@ -67,11 +66,11 @@ export default function SectionTermos({
       <div className="space-y-3">
         <h3 className="text-sm font-semibold">Termos</h3>
         <label className="flex items-center gap-2 rounded-md border p-2">
-          <Checkbox checked={data.termoResponsabilidade} onCheckedChange={(v) => onChange("termoResponsabilidade", v)} />
+          <Checkbox checked={data.termoResponsabilidade} onCheckedChange={(v) => onChange("termoResponsabilidade", v ? "sim" : "nao")} />
           <Label className="cursor-pointer">Aceito o termo de responsabilidade</Label>
         </label>
         <label className="flex items-center gap-2 rounded-md border p-2">
-          <Checkbox checked={data.autorizacaoImagem} onCheckedChange={(v) => onChange("autorizacaoImagem", v)} />
+          <Checkbox checked={data.autorizacaoImagem} onCheckedChange={(v) => onChange("autorizacaoImagem", v ? "sim" : "nao")} />
           <Label className="cursor-pointer">Autorizo uso de imagem</Label>
         </label>
       </div>

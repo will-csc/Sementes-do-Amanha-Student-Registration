@@ -1,77 +1,89 @@
 from flask import Blueprint, jsonify, abort, request, send_file
 from pathlib import Path
-from app.services.document_service import preencher_documento
+from app.services.document_service import preencher_documento, mapear_student_para_word
 
 bp = Blueprint("documents", __name__, url_prefix="/documents")
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 DOCS_DIR = BASE_DIR / "docs" / "forms"
 
 DOCUMENTS = {
     "ficha_acolhimento": {
         "filename": "ficha_de_acolhimento.docx",
         "label": "Ficha de Acolhimento"
-    },
-    "termo_autorizacao_saida": {
-        "filename": "termo_de_autorizacao_saida_desacompanhada.docx",
-        "label": "Termo de Autorização de Saída Desacompanhada"
-    },
-    "termo_responsabilidade": {
-        "filename": "termo_de_responsabilidade.docx",
-        "label": "Termo de Responsabilidade"
-    },
-    "termo_uso_imagem": {
-        "filename": "termo_uso_de_imagem.docx",
-        "label": "Termo de Uso de Imagem"
-    },
+    }
 }
 
-@bp.route("", methods=["GET"])
-def list_documents():
-    return jsonify([
-        {
-            "slug": slug,
-            "label": meta["label"],
-            "filename": meta["filename"],
-            "download_url": f"/documents/{slug}/emitir"
-        }
-        for slug, meta in DOCUMENTS.items()
-    ])
 
-@bp.route("/<slug>/emit", methods=["POST"])
+def marcar_booleano(dados, campo_front, campo_doc):
+    valor = dados.get(campo_front)
+
+    dados[f"{campo_doc}_sim"] = "X" if valor == "sim" else ""
+    dados[f"{campo_doc}_nao"] = "X" if valor == "nao" else ""
+
+
+def marcar_unico(dados, campo, opcoes):
+    valor = dados.get(campo)
+
+    for opcao in opcoes:
+        dados[f"{campo}_{opcao}"] = "X" if valor == opcao else ""
+
+
+def marcar_multiplos(dados, campo, opcoes):
+    valores = dados.get(campo, [])
+
+    for opcao in opcoes:
+        dados[f"{campo}_{opcao}"] = "X" if opcao in valores else ""
+
+
 @bp.route("/<slug>/emitir", methods=["POST"])
 def emitir_word(slug):
     meta = DOCUMENTS.get(slug)
     if not meta:
         abort(404)
 
-    dados_do_formulario = request.json 
+    dados_front = request.json
+    dados_word = mapear_student_para_word(dados_front)
+
+    dados = {**dados_front, **dados_word}
 
     try:
+        # ===== RADIO =====
+        marcar_unico(dados, "origem", [
+            "demanda", "conselho", "pais", "internet", "cras", "outros"
+        ])
 
-        valor_front = dados_do_formulario.get("autorizacaoSaida")
+        marcar_unico(dados, "tipo_domicilio", [
+            "proprio", "alugado", "cedido", "outros"
+        ])
 
-        if valor_front == "sim":
-            dados_do_formulario["autorizacao_saida"] = "autoriza"
-        elif valor_front == "nao":
-            dados_do_formulario["autorizacao_saida"] = "nao_autoriza"
+        marcar_unico(dados, "estado_civil", [
+            "casado", "uniao_estavel", "separados",
+            "divorciados", "viuvo", "outro"
+        ])
 
-        marcar_opcoes(dados_do_formulario, "autorizacao_saida", ["autoriza", "nao_autoriza"])
+        marcar_unico(dados, "vai", [
+            "sozinho", "acompanhado"
+        ])
 
-        caminho_arquivo = DOCS_DIR / meta["filename"]
-        arquivo_word = preencher_documento(str(caminho_arquivo), dados_do_formulario)
+        # ===== BOOLEANOS =====
+        marcar_booleano(dados, "contato_conjuge", "contato_conjuge")
+        marcar_booleano(dados, "recebe_beneficio", "recebe_beneficio")
+
+        # ===== CHECKBOX =====
+        marcar_multiplos(dados, "beneficios", [
+            "bolsa_familia", "renda_cidada", "bpc", "eventuais"
+        ])
+
+        caminho = DOCS_DIR / meta["filename"]
+        arquivo = preencher_documento(str(caminho), dados)
 
         return send_file(
-            arquivo_word,
+            arquivo,
             as_attachment=True,
-            download_name=f"{slug}_preenchido.docx",
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            download_name=f"{slug}.docx",
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-def marcar_opcoes(dados, campo, opcoes):
-    valor = dados.get(campo)
-    for opcao in opcoes:
-        chave = f"{campo}_{opcao}"
-        dados[chave] = "X" if valor == opcao else ""

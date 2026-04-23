@@ -9,39 +9,118 @@ MESES = {
     9: "setembro", 10: "outubro", 11: "novembro", 12: "dezembro"
 }
 
-def preencher_documento(nome_arquivo, dados):
-    # Localiza a pasta docs conforme seu Explorer
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    template_path = nome_arquivo
-    
-    if not os.path.exists(template_path):
-        raise FileNotFoundError(f"Template não encontrado: {template_path}")
+def normalizar(texto):
+    if not texto:
+        return ""
+    return (
+        texto.lower()
+        .replace(" ", "_")
+        .replace("ã", "a")
+        .replace("á", "a")
+        .replace("é", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ú", "u")
+    )
 
-    doc = Document(template_path)
+def formatar_data(data_str):
+    if not data_str:
+        return ""
+    try:
+        return datetime.strptime(data_str, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except:
+        return data_str
+
+
+def mapear_student_para_word(dados):
+    responsaveis = dados.get("responsaveisLegais", [])
+
+    resp1 = responsaveis[0] if len(responsaveis) > 0 else {}
+    resp2 = responsaveis[1] if len(responsaveis) > 1 else {}
+
+    logradouro = dados.get("enderecoLogradouro") or ""
+    numero = dados.get("enderecoNumero") or ""
+
+    beneficios = [normalizar(b) for b in dados.get("beneficios", [])]
+
+    return {
+        # ===== DADOS PRINCIPAIS =====
+        "nome_crianca": dados.get("nomeCompleto", ""),
+        "data_nascimento": formatar_data(dados.get("dataNascimento")),
+        "idade": dados.get("idade", ""),
+        "naturalidade": dados.get("naturalidade", ""),
+        "raca_cor": dados.get("racaCor", ""),
+        "sexo": dados.get("sexo", ""),
+        "rg_crianca": dados.get("rg", ""),
+        "cpf_crianca": dados.get("cpf", ""),
+        "nis": dados.get("nis", ""),
+        "cras_referencia": dados.get("crasReferencia", ""),
+
+        # ===== ENDEREÇO =====
+        "endereco": f"{logradouro}, {numero}".strip(", "),
+        "bairro": dados.get("enderecoBairro", ""),
+        "cidade": dados.get("enderecoCidade", ""),
+        "cep": dados.get("enderecoCep", ""),
+
+        # ===== PAIS =====
+        "nome_pai": dados.get("nomePai", ""),
+        "nome_mae": dados.get("nomeMae", ""),
+
+        # ===== RESPONSÁVEIS =====
+        "responsavel_1_nome": resp1.get("nome", ""),
+        "responsavel_1_rg": resp1.get("rg", ""),
+        "responsavel_1_cpf": resp1.get("cpf", ""),
+        "responsavel_1_celular": resp1.get("celular", ""),
+        "responsavel_1_parentesco": resp1.get("parentesco", ""),
+
+        "responsavel_2_nome": resp2.get("nome", ""),
+        "responsavel_2_rg": resp2.get("rg", ""),
+        "responsavel_2_cpf": resp2.get("cpf", ""),
+        "responsavel_2_celular": resp2.get("celular", ""),
+        "responsavel_2_parentesco": resp2.get("parentesco", ""),
+
+        # ===== CAMPOS PARA MARCAÇÃO =====
+        "origem": normalizar(dados.get("origem")),
+        "estado_civil": normalizar(dados.get("estadoCivilPais")),
+        "tipo_domicilio": normalizar(dados.get("tipoDomicilio")),
+        "beneficios": beneficios,
+    }
+
+
+def preencher_documento(nome_arquivo, dados):
+    if not os.path.exists(nome_arquivo):
+        raise FileNotFoundError(f"Template não encontrado: {nome_arquivo}")
+
+    doc = Document(nome_arquivo)
 
     hoje = datetime.now()
     dados.setdefault('dia', hoje.strftime('%d'))
     dados.setdefault('mes', MESES[hoje.month])
     dados.setdefault('ano', hoje.strftime('%Y'))
 
-    def realizar_substituicao(texto_container):
+    def substituir(paragraph):
+        full_text = "".join(run.text for run in paragraph.runs)
+
         for chave, valor in dados.items():
             marcador = f"{{{chave}}}"
-            if marcador in texto_container.text:
-                texto_container.text = texto_container.text.replace(marcador, str(valor))
+            full_text = full_text.replace(marcador, str(valor))
+
+        if paragraph.runs:
+            paragraph.runs[0].text = full_text
+            for run in paragraph.runs[1:]:
+                run.text = ""
 
     for p in doc.paragraphs:
-        realizar_substituicao(p)
+        substituir(p)
 
     for tabela in doc.tables:
         for linha in tabela.rows:
             for celula in linha.cells:
                 for p in celula.paragraphs:
-                    realizar_substituicao(p)
+                    substituir(p)
 
-    # SALVA EM MEMÓRIA (Não cria arquivos TEMP_ no disco)
     buffer = BytesIO()
     doc.save(buffer)
     buffer.seek(0)
-    
+
     return buffer
