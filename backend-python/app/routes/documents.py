@@ -15,11 +15,10 @@ DOCUMENTS = {
 }
 
 
-def marcar_booleano(dados, campo_front, campo_doc):
-    valor = dados.get(campo_front)
-
-    dados[f"{campo_doc}_sim"] = "X" if valor == "sim" else ""
-    dados[f"{campo_doc}_nao"] = "X" if valor == "nao" else ""
+def marcar_booleano(dados, campo):
+    valor = dados.get(campo)
+    dados[f"{campo}_sim"] = "X" if valor == "sim" else ""
+    dados[f"{campo}_nao"] = "X" if valor == "nao" else ""
 
 
 def marcar_unico(dados, campo, opcoes):
@@ -42,37 +41,51 @@ def emitir_word(slug):
     if not meta:
         abort(404)
 
-    dados_front = request.json
-    dados_word = mapear_student_para_word(dados_front)
+    dados_front = request.get_json()
 
+    if not dados_front:
+        return jsonify({"error": "JSON inválido"}), 400
+
+    dados_word = mapear_student_para_word(dados_front)
     dados = {**dados_front, **dados_word}
 
     try:
-        # ===== RADIO =====
+        # ORIGEM
         marcar_unico(dados, "origem", [
             "demanda", "conselho", "pais", "internet", "cras", "outros"
         ])
 
+        # DOMICÍLIO
         marcar_unico(dados, "tipo_domicilio", [
             "proprio", "alugado", "cedido", "outros"
         ])
 
+        # ESTADO CIVIL (CORRIGIDO)
         marcar_unico(dados, "estado_civil", [
-            "casado", "uniao_estavel", "separados",
-            "divorciados", "viuvo", "outro"
+            "casado",
+            "uniao_estavel",
+            "separados",
+            "divorciados",
+            "viuvo",
+            "outro"
         ])
 
+        # VAI
         marcar_unico(dados, "vai", [
-            "sozinho", "acompanhado"
+            "sozinho",
+            "acompanhado"
         ])
 
-        # ===== BOOLEANOS =====
-        marcar_booleano(dados, "contato_conjuge", "contato_conjuge")
-        marcar_booleano(dados, "recebe_beneficio", "recebe_beneficio")
+        # BOOLEANOS
+        marcar_booleano(dados, "contato_conjuge")
+        marcar_booleano(dados, "recebe_beneficio")
 
-        # ===== CHECKBOX =====
+        # MULTIPLOS
         marcar_multiplos(dados, "beneficios", [
-            "bolsa_familia", "renda_cidada", "bpc", "eventuais"
+            "bolsa_familia",
+            "renda_cidada",
+            "bpc",
+            "eventuais"
         ])
 
         caminho = DOCS_DIR / meta["filename"]

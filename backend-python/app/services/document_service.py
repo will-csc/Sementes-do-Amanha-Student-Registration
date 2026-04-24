@@ -9,11 +9,13 @@ MESES = {
     9: "setembro", 10: "outubro", 11: "novembro", 12: "dezembro"
 }
 
+
 def normalizar(texto):
     if not texto:
         return ""
     return (
-        texto.lower()
+        str(texto)
+        .lower()
         .replace(" ", "_")
         .replace("ã", "a")
         .replace("á", "a")
@@ -22,6 +24,7 @@ def normalizar(texto):
         .replace("ó", "o")
         .replace("ú", "u")
     )
+
 
 def formatar_data(data_str):
     if not data_str:
@@ -44,7 +47,7 @@ def mapear_student_para_word(dados):
     beneficios = [normalizar(b) for b in dados.get("beneficios", [])]
 
     return {
-        # ===== DADOS PRINCIPAIS =====
+        # DADOS PRINCIPAIS
         "nome_crianca": dados.get("nomeCompleto", ""),
         "data_nascimento": formatar_data(dados.get("dataNascimento")),
         "idade": dados.get("idade", ""),
@@ -56,17 +59,17 @@ def mapear_student_para_word(dados):
         "nis": dados.get("nis", ""),
         "cras_referencia": dados.get("crasReferencia", ""),
 
-        # ===== ENDEREÇO =====
+        # ENDEREÇO
         "endereco": f"{logradouro}, {numero}".strip(", "),
         "bairro": dados.get("enderecoBairro", ""),
         "cidade": dados.get("enderecoCidade", ""),
         "cep": dados.get("enderecoCep", ""),
 
-        # ===== PAIS =====
+        # PAIS
         "nome_pai": dados.get("nomePai", ""),
         "nome_mae": dados.get("nomeMae", ""),
 
-        # ===== RESPONSÁVEIS =====
+        # RESPONSÁVEIS
         "responsavel_1_nome": resp1.get("nome", ""),
         "responsavel_1_rg": resp1.get("rg", ""),
         "responsavel_1_cpf": resp1.get("cpf", ""),
@@ -79,10 +82,11 @@ def mapear_student_para_word(dados):
         "responsavel_2_celular": resp2.get("celular", ""),
         "responsavel_2_parentesco": resp2.get("parentesco", ""),
 
-        # ===== CAMPOS PARA MARCAÇÃO =====
+        # CAMPOS PARA CHECKBOX (CORRIGIDO)
         "origem": normalizar(dados.get("origem")),
-        "estado_civil": normalizar(dados.get("estadoCivilPais")),
-        "tipo_domicilio": normalizar(dados.get("tipoDomicilio")),
+        "estado_civil": normalizar(dados.get("estado_civil")),  # 🔥 FIX PRINCIPAL
+        "tipo_domicilio": normalizar(dados.get("tipo_domicilio")),
+        "vai": normalizar(dados.get("vai")),
         "beneficios": beneficios,
     }
 
@@ -102,8 +106,7 @@ def preencher_documento(nome_arquivo, dados):
         full_text = "".join(run.text for run in paragraph.runs)
 
         for chave, valor in dados.items():
-            marcador = f"{{{chave}}}"
-            full_text = full_text.replace(marcador, str(valor))
+            full_text = full_text.replace(f"{{{chave}}}", str(valor))
 
         if paragraph.runs:
             paragraph.runs[0].text = full_text
