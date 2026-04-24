@@ -44,10 +44,18 @@ def mapear_student_para_word(dados):
     logradouro = dados.get("enderecoLogradouro") or ""
     numero = dados.get("enderecoNumero") or ""
 
-    beneficios = [normalizar(b) for b in dados.get("beneficios", [])]
+    # 🔥 FIX ESTADO CIVIL (ESSENCIAL)
+    MAP_ESTADO_CIVIL = {
+        "casado": "casado",
+        "uniao_estavel": "uniao",
+        "separados": "separado",
+        "divorciados": "divorciado",
+        "viuvo": "viuvo",
+        "outro": "outro"
+    }
 
     return {
-        # DADOS PRINCIPAIS
+        # ===== DADOS PRINCIPAIS =====
         "nome_crianca": dados.get("nomeCompleto", ""),
         "data_nascimento": formatar_data(dados.get("dataNascimento")),
         "idade": dados.get("idade", ""),
@@ -59,17 +67,17 @@ def mapear_student_para_word(dados):
         "nis": dados.get("nis", ""),
         "cras_referencia": dados.get("crasReferencia", ""),
 
-        # ENDEREÇO
+        # ===== ENDEREÇO =====
         "endereco": f"{logradouro}, {numero}".strip(", "),
         "bairro": dados.get("enderecoBairro", ""),
         "cidade": dados.get("enderecoCidade", ""),
         "cep": dados.get("enderecoCep", ""),
 
-        # PAIS
+        # ===== PAIS =====
         "nome_pai": dados.get("nomePai", ""),
         "nome_mae": dados.get("nomeMae", ""),
 
-        # RESPONSÁVEIS
+        # ===== RESPONSÁVEIS =====
         "responsavel_1_nome": resp1.get("nome", ""),
         "responsavel_1_rg": resp1.get("rg", ""),
         "responsavel_1_cpf": resp1.get("cpf", ""),
@@ -82,12 +90,55 @@ def mapear_student_para_word(dados):
         "responsavel_2_celular": resp2.get("celular", ""),
         "responsavel_2_parentesco": resp2.get("parentesco", ""),
 
-        # CAMPOS PARA CHECKBOX (CORRIGIDO)
+        # ===== ESCOLAR =====
+        "escola": dados.get("escola", ""),
+        "serie": dados.get("serie", ""),
+        "periodo_escolar": dados.get("periodo_escolar", ""),
+
+        # ===== SAÚDE =====
+        "ubs_referencia": dados.get("ubs_referencia", ""),
+        "medicamento_continuo": dados.get("medicamento_continuo", ""),
+        "alergia_qual": dados.get("alergia_qual", ""),
+        "problema_saude_qual": dados.get("problema_saude_qual", ""),
+        "restricao_alimentar_qual": dados.get("restricao_alimentar_qual", ""),
+        "restricao_fisica_qual": dados.get("restricao_fisica_qual", ""),
+        "deficiencia_qual": dados.get("deficiencia_qual", ""),
+
+        # ===== CAMPOS CONTROLADOS =====
         "origem": normalizar(dados.get("origem")),
-        "estado_civil": normalizar(dados.get("estado_civil")),  # 🔥 FIX PRINCIPAL
+        "estado_civil": MAP_ESTADO_CIVIL.get(
+            normalizar(dados.get("estado_civil")),
+            normalizar(dados.get("estado_civil"))
+        ),
         "tipo_domicilio": normalizar(dados.get("tipo_domicilio")),
         "vai": normalizar(dados.get("vai")),
-        "beneficios": beneficios,
+
+        # ===== BOOLEANOS =====
+        "matriculado": dados.get("matriculado"),
+        "parou_escola": dados.get("parou_escola"),
+        "problema_saude": dados.get("problema_saude"),
+        "restricao_alimentar": dados.get("restricao_alimentar"),
+        "restricao_fisica": dados.get("restricao_fisica"),
+        "bronquite": dados.get("bronquite"),
+        "falta_ar": dados.get("falta_ar"),
+        "odontologico": dados.get("odontologico"),
+        "deficiencia": dados.get("deficiencia"),
+        "oftalmologico": dados.get("oftalmologico"),
+        "usa_oculos": dados.get("usa_oculos"),
+        "fica_sozinho": dados.get("fica_sozinho"),
+        "outras_atividades": dados.get("outras_atividades"),
+        "situacao_prioritaria": dados.get("situacao_prioritaria"),
+
+        # ===== LISTAS =====
+        "beneficios": [normalizar(b) for b in dados.get("beneficios", [])],
+        "onde": [normalizar(x) for x in dados.get("onde", [])],
+        "atividade": [normalizar(x) for x in dados.get("atividade", [])],
+        "servicos": [normalizar(x) for x in dados.get("servicos", [])],
+        "atendimentos": [normalizar(x) for x in dados.get("atendimentos", [])],
+
+        # ===== INTERAÇÃO =====
+        "interage_frequencia": normalizar(dados.get("interage_frequencia")),
+        "interage_com": [normalizar(x) for x in dados.get("interage_com", [])],
     }
 
 
@@ -103,13 +154,13 @@ def preencher_documento(nome_arquivo, dados):
     dados.setdefault('ano', hoje.strftime('%Y'))
 
     def substituir(paragraph):
-        full_text = "".join(run.text for run in paragraph.runs)
+        texto = "".join(run.text for run in paragraph.runs)
 
         for chave, valor in dados.items():
-            full_text = full_text.replace(f"{{{chave}}}", str(valor))
+            texto = texto.replace(f"{{{chave}}}", str(valor))
 
         if paragraph.runs:
-            paragraph.runs[0].text = full_text
+            paragraph.runs[0].text = texto
             for run in paragraph.runs[1:]:
                 run.text = ""
 
