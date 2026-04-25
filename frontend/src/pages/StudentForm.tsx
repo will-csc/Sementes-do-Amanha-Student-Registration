@@ -226,6 +226,94 @@ const sections = [
   { value: 'termos', label: 'Termos e Autorizações', icon: FileCheck },
 ];
 
+function normalize(value?: string) {
+  if (!value) return "";
+  return value
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function simNao(value?: boolean) {
+  return value ? "sim" : "nao";
+}
+
+function mapToWordPayload(student: any) {
+  return {
+    // ===== DADOS PRINCIPAIS =====
+    nomeCompleto: student.nomeCompleto,
+    dataNascimento: student.dataNascimento,
+    idade: student.idade,
+    naturalidade: student.naturalidade,
+    racaCor: student.racaCor,
+    sexo: student.sexo,
+    rg: student.rg,
+    cpf: student.cpf,
+    nis: student.nis,
+    crasReferencia: student.crasReferencia,
+
+    // ===== ENDEREÇO =====
+    enderecoLogradouro: student.enderecoLogradouro,
+    enderecoNumero: student.enderecoNumero,
+    enderecoBairro: student.enderecoBairro,
+    enderecoCidade: student.enderecoCidade,
+    enderecoCep: student.enderecoCep,
+
+    // ===== PAIS =====
+    nomePai: student.nomePai,
+    nomeMae: student.nomeMae,
+
+    // ===== RESPONSÁVEIS =====
+    responsaveisLegais: student.responsaveisLegais,
+
+    // ===== ESCOLAR =====
+    escola: student.escolaNome,
+    serie: student.escolaSerie,
+    periodo_escolar: student.escolaPeriodo,
+
+    // ===== SAÚDE =====
+    ubs_referencia: student.ubsReferencia,
+    problema_saude: simNao(student.temProblemaSaude),
+    problema_saude_qual: student.problemaSaudeDescricao,
+
+    restricao_alimentar: simNao(student.temRestricoes),
+    restricao_alimentar_qual: student.restricoesDescricao,
+
+    deficiencia: simNao(student.temDeficiencia),
+    deficiencia_qual: student.deficienciaDescricao,
+
+    // ===== CAMPOS CONTROLADOS =====
+    tipo_domicilio: normalize(student.tipoDomicilio),
+    estado_civil: normalize(student.estadoCivilPais),
+
+    // ⚠️ NÃO EXISTE NO FRONT AINDA
+    origem: "outros",
+    vai: "acompanhado",
+
+    // ===== BOOLEANOS =====
+    fica_sozinho: simNao(!student.temSupervisao),
+    outras_atividades: simNao(!!student.atividadesExtras),
+
+    // ===== LISTAS =====
+    beneficios: (student.beneficios || []).map(normalize),
+
+    servicos: (student.servicosUtilizados || []).map(normalize),
+
+    atendimentos: [], // pode melhorar depois
+
+    onde: (student.locaisLazer || []).map(normalize),
+
+    atividade: student.atividadesExtras
+      ? ["outros"]
+      : [],
+
+    // ===== INTERAÇÃO =====
+    interage_frequencia: "sempre",
+    interage_com: [],
+  };
+}
+
 const StudentForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -343,6 +431,34 @@ const StudentForm = () => {
     window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
 
+  const downloadWord = async (student: any) => {
+  const payload = mapToWordPayload(student);
+
+  const res = await fetchBackend(`/documents/emitir_word`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      accept: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(normalizeHttpErrorText(text, res.status));
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${student.nomeCompleto || "documento"}.docx`;
+  a.click();
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+};
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const items = (isEditing ? [{ tabIndex: 0, data: tabs[0] }] : tabs.map((t, i) => ({ tabIndex: i, data: t })));
@@ -363,7 +479,7 @@ const StudentForm = () => {
         setShowConfirm(true);
       } else {
         const created = await addStudent(tabs[0]);
-        await downloadContractPdf(created.id);
+        await downloadWord(created);
         toast.success('Aluno cadastrado com sucesso!');
         navigate('/students');
       }
@@ -392,7 +508,7 @@ const StudentForm = () => {
     try {
       for (const form of toRegister) {
         const created = await addStudent(form);
-        await downloadContractPdf(created.id);
+        await downloadWord(created);
       }
       toast.success(toRegister.length > 1 ? `${toRegister.length} alunos cadastrados com sucesso!` : 'Aluno cadastrado com sucesso!');
       setShowConfirm(false);
