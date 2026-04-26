@@ -1,3 +1,22 @@
+import os
+from docxtpl import DocxTemplate
+from datetime import datetime
+
+def normalizar(valor):
+    if not valor:
+        return ""
+    return str(valor).strip().lower()
+
+def formatar_data(data_str):
+    if not data_str:
+        return ""
+    try:
+        # Tenta converter formato ISO ou YYYY-MM-DD para DD/MM/YYYY
+        dt = datetime.fromisoformat(data_str.replace('Z', ''))
+        return dt.strftime('%d/%m/%Y')
+    except:
+        return data_str
+
 def mapear_student_para_word(dados):
     responsaveis = dados.get("responsaveisLegais", [])
 
@@ -22,10 +41,10 @@ def mapear_student_para_word(dados):
         return "X" if condicao else " "
 
     def check_sim(valor):
-        return "X" if valor is True else " "
+        return "X" if valor is True or str(valor).upper() == "SIM" else " "
 
     def check_nao(valor):
-        return "X" if valor is False else " "
+        return "X" if valor is False or str(valor).upper() == "NÃO" else " "
 
     # Variáveis normalizadas para verificações em lote
     origem = normalizar(dados.get("origem"))
@@ -241,6 +260,14 @@ def mapear_student_para_word(dados):
         "situacao_prioritaria_nao": check_nao(dados.get("situacao_prioritaria")),
     }
 
+    # Data Atual para o cabeçalho
+    hoje = datetime.now()
+    meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    resultado["dia"] = hoje.day
+    resultado["mes"] = meses[hoje.month - 1]
+    resultado["ano_atual"] = hoje.year
+
     # ===== COMPOSIÇÃO FAMILIAR (LISTA DINÂMICA) =====
     familiares = dados.get("composicao_familiar", [])
     for i in range(1, 7):
@@ -251,3 +278,25 @@ def mapear_student_para_word(dados):
         resultado[f"renda_{i}"] = f.get("renda", "")
 
     return resultado
+
+def preencher_documento(dados_brutos):
+    """Função principal chamada pelas rotas"""
+    # 1. Mapeia os dados do frontend para o formato das tags do Word
+    dados_mapeados = mapear_student_para_word(dados_brutos)
+    
+    # 2. Carrega o template (ajuste o caminho conforme sua estrutura)
+    template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'ficha_acolhimento.docx')
+    
+    # Se o caminho acima não funcionar, tente o caminho absoluto direto para teste:
+    # template_path = r"C:\Caminho\Para\Seu\Template.docx"
+
+    doc = DocxTemplate(template_path)
+    
+    # 3. Faz o merge dos dados
+    doc.render(dados_mapeados)
+    
+    # 4. Define o caminho de saída temporário
+    output_path = os.path.join(os.path.dirname(__file__), '..', '..', 'temp_output.docx')
+    doc.save(output_path)
+    
+    return output_path
