@@ -287,13 +287,24 @@ function mapToWordPayload(student: any) {
     tipo_domicilio: normalize(student.tipoDomicilio),
     estado_civil: normalize(student.estadoCivilPais),
 
-    // ⚠️ NÃO EXISTE NO FRONT AINDA
     origem: "outros",
     vai: "acompanhado",
 
     // ===== BOOLEANOS =====
     fica_sozinho: simNao(!student.temSupervisao),
     outras_atividades: simNao(!!student.atividadesExtras),
+
+    certidao: student.certidaoTermo || "",
+    folha: student.certidaoFolha || "",
+    livro: student.certidaoLivro || "",
+
+    ano_escolar: student.escolaAno,
+    nome_professor: student.escolaProfessor,
+
+    composicao_familiar: student.membrosFamiliares || [], 
+
+    "alergia?": student.temAlergia ? "SIM" : "NÃO", 
+    alergia_qual: student.alergiaDescricao,
 
     // ===== LISTAS =====
     beneficios: (student.beneficios || []).map(normalize),
