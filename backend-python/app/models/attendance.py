@@ -3,7 +3,7 @@ from app.database import db
 class StudentAttendance(db.Model):
     __tablename__ = "student_attendance"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     data = db.Column(db.Date, nullable=False, index=True)
     status = db.Column(db.Text, nullable=False)

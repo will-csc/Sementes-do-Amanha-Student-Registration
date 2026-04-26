@@ -5,7 +5,7 @@ from sqlalchemy import func
 class Student(db.Model):
     __tablename__ = "students"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     nome_completo = db.Column(db.Text, nullable=False, index=True)
     data_nascimento = db.Column(db.Date)
@@ -93,7 +93,7 @@ class Student(db.Model):
 class StudentResponsavelLegal(db.Model):
     __tablename__ = "student_responsaveis_legais"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
     posicao = db.Column(db.SmallInteger, nullable=False)
     nome = db.Column(db.Text)
@@ -115,7 +115,7 @@ class StudentResponsavelLegal(db.Model):
 class StudentMembroFamiliar(db.Model):
     __tablename__ = "student_membros_familiares"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
     nome = db.Column(db.Text)
     parentesco = db.Column(db.Text)
@@ -126,7 +126,7 @@ class StudentMembroFamiliar(db.Model):
 class StudentPessoaAutorizada(db.Model):
     __tablename__ = "student_pessoas_autorizadas"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
     nome = db.Column(db.Text)
     documento = db.Column(db.Text)
@@ -165,7 +165,7 @@ class StudentServicoUtilizado(db.Model):
 class StudentAuditEvent(db.Model):
     __tablename__ = "student_audit_events"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     student_name = db.Column(db.Text, nullable=False)
     action = db.Column(db.Text, nullable=False)

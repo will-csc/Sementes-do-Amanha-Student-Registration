@@ -3,7 +3,7 @@ from app.database import db
 class StudentTransporte(db.Model):
     __tablename__ = "student_transporte"
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     utiliza_van = db.Column(db.Text)
     endereco_rota = db.Column(db.Text)
