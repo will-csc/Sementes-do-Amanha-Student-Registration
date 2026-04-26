@@ -3,10 +3,14 @@ from pathlib import Path
 from app.services.document_service import preencher_documento, mapear_student_para_word
 from zipfile import ZipFile
 import tempfile
+import os
 from datetime import datetime
+from io import BytesIO
 
 bp = Blueprint("documents", __name__, url_prefix="/documents")
 
+# Localização dos templates .docx
+# Subimos níveis para garantir que encontre a pasta 'docs' na raiz do projeto
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 DOCS_DIR = BASE_DIR / "docs" / "forms"
 
@@ -25,22 +29,17 @@ DOCUMENTS = {
     }
 }
 
-# Mantivemos apenas as funções necessárias para os outros termos (imagem e saída)
 def marcar_unico(dados, campo, opcoes):
+    """Transforma valores de rádio/select em 'X' para o Word."""
     valor = dados.get(campo)
     for opcao in opcoes:
         dados[f"{campo}_{opcao}"] = "X" if valor == opcao else ""
 
 def completar_dados(dados):
-    dados["nome_crianca"] = dados.get("nomeCompleto", "")
-    dados["nome_responsavel"] = dados.get("nomeMae") or dados.get("nomePai") or ""
-    dados["rg_responsavel"] = dados.get("rg_responsavel", "")
-    dados["cpf_responsavel"] = dados.get("cpf_responsavel", "")
-    dados["endereco_responsavel"] = dados.get("enderecoLogradouro", "")
-    dados["nacionalidade_crianca"] = dados.get("nacionalidade_crianca", "brasileira")
-    dados["idade_crianca"] = dados.get("idade", "")
-    dados["periodo_atividades"] = dados.get("periodo_escolar", "")
-
+    """Garante que campos derivados e datas estejam preenchidos."""
+    dados["nome_crianca"] = dados.get("nome_completo") or dados.get("nomeCompleto", "")
+    dados["nome_responsavel"] = dados.get("nome_mae") or dados.get("nome_pai") or ""
+    
     meses_pt = {
         1: "janeiro", 2: "fevereiro", 3: "março", 4: "abril",
         5: "maio", 6: "junho", 7: "julho", 8: "agosto",
@@ -52,82 +51,95 @@ def completar_dados(dados):
     dados["mes"] = meses_pt[hoje.month]
     dados["ano"] = hoje.strftime("%Y")
 
-    responsaveis = dados.get("pessoasAutorizadas", []) or []
+    autorizados = dados.get("pessoas_autorizadas") or dados.get("pessoasAutorizadas") or []
     for i in range(5):
-        if i < len(responsaveis):
-            dados[f"resp_{i+1}_nome"] = responsaveis[i].get("nome", "")
-            dados[f"resp_{i+1}_parentesco"] = responsaveis[i].get("parentesco", "")
+        if i < len(autorizados):
+            dados[f"resp_{i+1}_nome"] = autorizados[i].get("nome", "")
+            dados[f"resp_{i+1}_parentesco"] = autorizados[i].get("parentesco", "")
         else:
             dados[f"resp_{i+1}_nome"] = ""
             dados[f"resp_{i+1}_parentesco"] = ""
 
-
-@bp.route("/<slug>/emitir", methods=["POST"])
-def emitir_word(slug):
-    meta = DOCUMENTS.get(slug)
-    if not meta:
-        abort(404)
-
-    dados_front = request.get_json()
-    if not dados_front:
-        return jsonify({"error": "JSON inválido"}), 400
-
-    # O service mapear_student_para_word já resolve todos os booleanos e checkboxes da Ficha!
-    dados_word = mapear_student_para_word(dados_front)
-    dados = {**dados_front, **dados_word}
-
-    try:
-        # Preenche as marcações exclusivas dos Termos de Imagem e Saída
-        marcar_unico(dados, "autorizacao_saida", ["autoriza", "nao_autoriza"])
-        marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
-
-        completar_dados(dados)
-
-        caminho = DOCS_DIR / meta["filename"]
-        arquivo = preencher_documento(str(caminho), dados)
-
-        return send_file(
-            arquivo,
-            as_attachment=True,
-            download_name=f"{slug}.docx",
-            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@bp.route("/emitir_todos", methods=["POST"])
+@bp.route("/emitir_todos", methods=["POST", "OPTIONS"])
 def emitir_todos():
-    dados_front = request.get_json()
-    if not dados_front:
-        return jsonify({"error": "JSON inválido"}), 400
+    if request.method == "OPTIONS":
+        return "", 200
 
-    # O service já resolve as variáveis complexas
-    dados_word = mapear_student_para_word(dados_front)
-    dados = {**dados_front, **dados_word}
+    dados_front = request.get_json(silent=True)
+    if not dados_front:
+        return jsonify({"error": "Dados não enviados"}), 400
 
     try:
-        # Preenche as marcações exclusivas dos Termos de Imagem e Saída
-        marcar_unico(dados, "autorizacao_saida", ["autoriza", "nao_autoriza"])
+        dados_word = mapear_student_para_word(dados_front)
+        dados = {**dados_front, **dados_word}
+        
+        marcar_unico(dados, "autorizacao_saida", ["sim", "nao", "somente-com-responsavel"])
         marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
-
         completar_dados(dados)
 
-        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
-
-        with ZipFile(temp_zip.name, "w") as zipf:
+        memory_file = BytesIO()
+        with ZipFile(memory_file, 'w') as zf:
             for slug, meta in DOCUMENTS.items():
-                caminho = DOCS_DIR / meta["filename"]
-                buffer = preencher_documento(str(caminho), dados)
-                zipf.writestr(f"{slug}.docx", buffer.getvalue())
+                caminho_template = DOCS_DIR / meta["filename"]
+                
+                if caminho_template.exists():
+                    # Chamada corrigida aqui também para manter o padrão
+                    doc_buffer = preencher_documento(str(caminho_template), dados)
+                    zf.writestr(f"{slug}.docx", doc_buffer.getvalue())
+                else:
+                    print(f"Aviso: Template não encontrado em {caminho_template}")
 
+        memory_file.seek(0)
+        
         return send_file(
-            temp_zip.name,
+            memory_file,
             as_attachment=True,
-            download_name="documentos.zip",
+            download_name="documentos_aluno.zip",
             mimetype="application/zip"
         )
 
     except Exception as e:
+        import traceback
+        print("--- ERRO NO BACKEND ---")
+        traceback.print_exc() # Isso vai mostrar a linha exata e o arquivo Word culpado
         return jsonify({"error": str(e)}), 500
+
+@bp.route("/<slug>", methods=["POST", "OPTIONS"])
+def emitir_word(slug):
+    if request.method == "OPTIONS":
+        return "", 200
+
+    target_slug = "ficha_acolhimento" if slug == "emitir_word" else slug
+    meta = DOCUMENTS.get(target_slug)
+    
+    if not meta:
+        return jsonify({"error": f"Documento '{target_slug}' não encontrado"}), 404
+
+    dados_front = request.get_json(silent=True)
+    if not dados_front:
+        return jsonify({"error": "Dados não enviados"}), 400
+
+    try:
+        dados_word = mapear_student_para_word(dados_front)
+        dados = {**dados_front, **dados_word}
+        
+        marcar_unico(dados, "autorizacao_saida", ["sim", "nao", "somente-com-responsavel"])
+        marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
+        completar_dados(dados)
+
+        caminho_template = DOCS_DIR / meta["filename"]
+        
+        # IMPORTANTE: Passando caminho e dados para a função
+        output = preencher_documento(str(caminho_template), dados)
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"{target_slug}.docx",
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    except Exception as e:
+        print(f"Erro ao gerar documento: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+

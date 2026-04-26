@@ -303,7 +303,7 @@ function mapToWordPayload(student: any) {
 
     composicao_familiar: student.membrosFamiliares || [], 
 
-    "alergia?": student.temAlergia ? "SIM" : "NÃO", 
+    "alergia": student.temAlergia ? "SIM" : "NÃO", 
     alergia_qual: student.alergiaDescricao,
 
     // ===== LISTAS =====
@@ -442,14 +442,15 @@ const StudentForm = () => {
     window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
 
-  const downloadWord = async (student: any) => {
+  const downloadZip = async (student: any) => {
   const payload = mapToWordPayload(student);
 
-  const res = await fetchBackend(`/documents/emitir_word`, {
+  const res = await fetchBackend(`/documents/emitir_todos`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      accept: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      // Mudamos para aceitar ZIP
+      accept: "application/zip",
     },
     body: JSON.stringify(payload),
   });
@@ -464,7 +465,8 @@ const StudentForm = () => {
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${student.nomeCompleto || "documento"}.docx`;
+  // Nome do arquivo baixado vira .zip
+  a.download = `Documentos_${student.nomeCompleto || "Aluno"}.zip`;
   a.click();
 
   window.setTimeout(() => URL.revokeObjectURL(url), 10000);
@@ -490,7 +492,7 @@ const StudentForm = () => {
         setShowConfirm(true);
       } else {
         const created = await addStudent(tabs[0]);
-        await downloadWord(created);
+        await downloadZip(created);
         toast.success('Aluno cadastrado com sucesso!');
         navigate('/students');
       }
@@ -519,7 +521,7 @@ const StudentForm = () => {
     try {
       for (const form of toRegister) {
         const created = await addStudent(form);
-        await downloadWord(created);
+        await downloadZip(created);
       }
       toast.success(toRegister.length > 1 ? `${toRegister.length} alunos cadastrados com sucesso!` : 'Aluno cadastrado com sucesso!');
       setShowConfirm(false);

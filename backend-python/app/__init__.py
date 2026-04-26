@@ -5,6 +5,7 @@ from flask_cors import CORS
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
+    # O CORS(app) já faz tudo o que o add_cors_headers fazia, mas de forma correta para o protocolo HTTP
     CORS(app)
 
     from app.config import DevelopmentConfig
@@ -12,6 +13,7 @@ def create_app():
 
     db.init_app(app)
 
+    # Blueprints
     from app.routes.main import bp as main_bp
     from app.routes.users import bp as users_bp
     from app.routes.students import bp as students_bp, audit_bp as student_audit_bp, stats_bp as student_stats_bp
@@ -27,12 +29,5 @@ def create_app():
     app.register_blueprint(attendance_bp)
     app.register_blueprint(transport_bp)
     app.register_blueprint(documents_bp)
-
-    @app.after_request
-    def add_cors_headers(response):
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization,X-User-Email,X-User-Id,Accept"
-        return response
 
     return app

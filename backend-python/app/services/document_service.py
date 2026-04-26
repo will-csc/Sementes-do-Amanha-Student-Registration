@@ -1,4 +1,5 @@
 import os
+import io
 from docxtpl import DocxTemplate
 from datetime import datetime
 
@@ -279,24 +280,22 @@ def mapear_student_para_word(dados):
 
     return resultado
 
-def preencher_documento(dados_brutos):
-    """Função principal chamada pelas rotas"""
-    # 1. Mapeia os dados do frontend para o formato das tags do Word
-    dados_mapeados = mapear_student_para_word(dados_brutos)
-    
-    # 2. Carrega o template (ajuste o caminho conforme sua estrutura)
-    template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'ficha_acolhimento.docx')
-    
-    # Se o caminho acima não funcionar, tente o caminho absoluto direto para teste:
-    # template_path = r"C:\Caminho\Para\Seu\Template.docx"
-
+def preencher_documento(template_path, dados_prontos):
+    """
+    Carrega o template apontado por template_path, faz o merge com
+    os dados_prontos e retorna um buffer de memória com o arquivo gerado.
+    """
+    # Carrega o documento a partir do caminho exato enviado pelo documents.py
     doc = DocxTemplate(template_path)
     
-    # 3. Faz o merge dos dados
-    doc.render(dados_mapeados)
+    # Faz o merge das chaves (aquelas {{ tags }} do Word) com os dados
+    doc.render(dados_prontos)
     
-    # 4. Define o caminho de saída temporário
-    output_path = os.path.join(os.path.dirname(__file__), '..', '..', 'temp_output.docx')
-    doc.save(output_path)
+    # Salva o arquivo preenchido diretamente na memória do servidor
+    target = io.BytesIO()
+    doc.save(target)
     
-    return output_path
+    # "Rebobina" o arquivo para o início, para que o Flask possa ler desde o começo
+    target.seek(0)
+    
+    return target

@@ -600,21 +600,31 @@ def list_audit_events():
 
 @stats_bp.route("/stats/students", methods=["GET"])
 def get_students_stats():
+    # 1. Total de alunos
     total_students = db.session.query(func.count(Student.id)).scalar() or 0
+    
+    # 2. Total de escolas (usando trim para compatibilidade com SQLite)
     schools = (
         db.session.query(func.count(func.distinct(Student.escola_nome)))
         .filter(Student.escola_nome.isnot(None))
-        .filter(func.btrim(Student.escola_nome) != "")
+        .filter(func.trim(Student.escola_nome) != "")
         .scalar()
         or 0
     )
+    
+    # 3. Alunos deste mês (Corrigido para SQLite)
     this_month = (
         db.session.query(func.count(Student.id))
-        .filter(Student.created_at >= func.date_trunc("month", func.now()))
+        .filter(func.strftime('%Y-%m', Student.created_at) == func.strftime('%Y-%m', 'now'))
         .scalar()
         or 0
     )
-    return jsonify({"totalStudents": total_students, "schools": schools, "thisMonth": this_month})
+    
+    return jsonify({
+        "totalStudents": total_students, 
+        "schools": schools, 
+        "thisMonth": this_month
+    })
 
 
 @stats_bp.route("/stats/admin", methods=["GET"])
