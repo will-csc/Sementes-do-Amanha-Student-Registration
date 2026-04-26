@@ -1,8 +1,11 @@
 from flask import Flask
 from app.database import db
+from flask_cors import CORS
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
+
+    CORS(app)
 
     from app.config import DevelopmentConfig
     app.config.from_object(DevelopmentConfig)
