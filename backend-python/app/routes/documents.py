@@ -25,30 +25,11 @@ DOCUMENTS = {
     }
 }
 
-
-def marcar_booleano(dados, campo):
-    valor = dados.get(campo)
-    dados[f"{campo}_sim"] = "X" if valor == "sim" else ""
-    dados[f"{campo}_nao"] = "X" if valor == "nao" else ""
-
-
+# Mantivemos apenas as funções necessárias para os outros termos (imagem e saída)
 def marcar_unico(dados, campo, opcoes):
     valor = dados.get(campo)
     for opcao in opcoes:
         dados[f"{campo}_{opcao}"] = "X" if valor == opcao else ""
-
-
-def marcar_multiplos_prefixo(dados, campo, prefixo, opcoes):
-    valores = dados.get(campo, [])
-    for opcao in opcoes:
-        dados[f"{prefixo}_{opcao}"] = "X" if opcao in valores else ""
-
-
-def marcar_multiplos(dados, campo, opcoes):
-    valores = dados.get(campo, [])
-    for opcao in opcoes:
-        dados[f"{campo}_{opcao}"] = "X" if opcao in valores else ""
-
 
 def completar_dados(dados):
     dados["nome_crianca"] = dados.get("nomeCompleto", "")
@@ -60,9 +41,15 @@ def completar_dados(dados):
     dados["idade_crianca"] = dados.get("idade", "")
     dados["periodo_atividades"] = dados.get("periodo_escolar", "")
 
+    meses_pt = {
+        1: "janeiro", 2: "fevereiro", 3: "março", 4: "abril",
+        5: "maio", 6: "junho", 7: "julho", 8: "agosto",
+        9: "setembro", 10: "outubro", 11: "novembro", 12: "dezembro"
+    }
+    
     hoje = datetime.now()
     dados["dia"] = hoje.strftime("%d")
-    dados["mes"] = hoje.strftime("%B")
+    dados["mes"] = meses_pt[hoje.month]
     dados["ano"] = hoje.strftime("%Y")
 
     responsaveis = dados.get("pessoasAutorizadas", []) or []
@@ -85,66 +72,14 @@ def emitir_word(slug):
     if not dados_front:
         return jsonify({"error": "JSON inválido"}), 400
 
+    # O service mapear_student_para_word já resolve todos os booleanos e checkboxes da Ficha!
     dados_word = mapear_student_para_word(dados_front)
     dados = {**dados_front, **dados_word}
 
     try:
-        marcar_unico(dados, "origem", ["demanda","conselho","pais","internet","cras","outros"])
-        marcar_unico(dados, "tipo_domicilio", ["proprio","alugado","cedido","outros"])
-        marcar_unico(dados, "estado_civil", ["casado","uniao","separado","divorciado","viuvo","outro"])
-        marcar_unico(dados, "vai", ["sozinho","acompanhado"])
-
-        marcar_booleano(dados, "contato_conjuge")
-        marcar_booleano(dados, "recebe_beneficio")
-
-        marcar_multiplos(dados, "beneficios", ["bolsa_familia","renda_cidada","bpc","eventuais"])
-
-        marcar_booleano(dados, "matriculado")
-        marcar_booleano(dados, "parou_escola")
-
-        marcar_booleano(dados, "problema_saude")
-        marcar_booleano(dados, "restricao_alimentar")
-        marcar_booleano(dados, "restricao_fisica")
-        marcar_booleano(dados, "bronquite")
-        marcar_booleano(dados, "falta_ar")
-        marcar_booleano(dados, "odontologico")
-        marcar_booleano(dados, "deficiencia")
-        marcar_booleano(dados, "oftalmologico")
-        marcar_booleano(dados, "usa_oculos")
-
-        marcar_multiplos_prefixo(dados, "atendimentos", "atendimento", [
-            "ubs","caps","hospital","ser","outros"
-        ])
-
-        marcar_booleano(dados, "fica_sozinho")
-
-        valor_freq = str(dados.get("interage_frequencia", "")).lower()
-        for opcao in ["nunca", "raramente", "sempre"]:
-            dados[f"interage_{opcao}"] = "X" if valor_freq == opcao else ""
-
-        valores_com = [str(x).lower() for x in dados.get("interage_com", [])]
-        for opcao in ["familia", "amigos", "parentes"]:
-            dados[f"interage_{opcao}"] = "X" if opcao in valores_com else ""
-
-        marcar_multiplos(dados, "onde", [
-            "casa","parentes","rua","pracas","redes",
-            "telefone","festas","religioso","passeios","outros"
-        ])
-
-        marcar_booleano(dados, "outras_atividades")
-        marcar_multiplos(dados, "atividade", ["esportes","cultura","nucleo","ong","outros"])
-
-        marcar_multiplos_prefixo(dados, "servicos", "servico", [
-            "cras","creas","creas_medidas","forum","conselho","fundacao",
-            "centro_dia","saica","ilpi","centro_pop","seas",
-            "delegacia","delegacia_mulher","centro_mulher",
-            "pronto_socorro","caps","sistema_prisional","egresso"
-        ])
-
+        # Preenche as marcações exclusivas dos Termos de Imagem e Saída
         marcar_unico(dados, "autorizacao_saida", ["autoriza", "nao_autoriza"])
         marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
-
-        marcar_booleano(dados, "situacao_prioritaria")
 
         completar_dados(dados)
 
@@ -168,65 +103,12 @@ def emitir_todos():
     if not dados_front:
         return jsonify({"error": "JSON inválido"}), 400
 
+    # O service já resolve as variáveis complexas
     dados_word = mapear_student_para_word(dados_front)
     dados = {**dados_front, **dados_word}
-    
 
     try:
-        marcar_unico(dados, "origem", ["demanda","conselho","pais","internet","cras","outros"])
-        marcar_unico(dados, "tipo_domicilio", ["proprio","alugado","cedido","outros"])
-        marcar_unico(dados, "estado_civil", ["casado","uniao","separado","divorciado","viuvo","outro"])
-        marcar_unico(dados, "vai", ["sozinho","acompanhado"])
-
-        marcar_booleano(dados, "contato_conjuge")
-        marcar_booleano(dados, "recebe_beneficio")
-
-        marcar_multiplos(dados, "beneficios", ["bolsa_familia","renda_cidada","bpc","eventuais"])
-
-        marcar_booleano(dados, "matriculado")
-        marcar_booleano(dados, "parou_escola")
-
-        marcar_booleano(dados, "problema_saude")
-        marcar_booleano(dados, "restricao_alimentar")
-        marcar_booleano(dados, "restricao_fisica")
-        marcar_booleano(dados, "bronquite")
-        marcar_booleano(dados, "falta_ar")
-        marcar_booleano(dados, "odontologico")
-        marcar_booleano(dados, "deficiencia")
-        marcar_booleano(dados, "oftalmologico")
-        marcar_booleano(dados, "usa_oculos")
-
-        marcar_multiplos_prefixo(dados, "atendimentos", "atendimento", [
-            "ubs","caps","hospital","ser","outros"
-        ])
-
-        marcar_booleano(dados, "fica_sozinho")
-
-        marcar_multiplos(dados, "onde", [
-            "casa","parentes","rua","pracas","redes",
-            "telefone","festas","religioso","passeios","outros"
-        ])
-
-        valor_freq = dados.get("interage_frequencia")
-        for opcao in ["nunca", "raramente", "sempre"]:
-            dados[f"interage_{opcao}"] = "X" if valor_freq == opcao else ""
-
-        valores_com = dados.get("interage_com", [])
-        for opcao in ["familia", "amigos", "parentes"]:
-            dados[f"interage_{opcao}"] = "X" if opcao in valores_com else ""
-
-        marcar_booleano(dados, "outras_atividades")
-        marcar_multiplos(dados, "atividade", ["esportes","cultura","nucleo","ong","outros"])
-
-        marcar_multiplos_prefixo(dados, "servicos", "servico", [
-            "cras","creas","creas_medidas","forum","conselho","fundacao",
-            "centro_dia","saica","ilpi","centro_pop","seas",
-            "delegacia","delegacia_mulher","centro_mulher",
-            "pronto_socorro","caps","sistema_prisional","egresso"
-        ])
-
-        marcar_booleano(dados, "situacao_prioritaria")
-
+        # Preenche as marcações exclusivas dos Termos de Imagem e Saída
         marcar_unico(dados, "autorizacao_saida", ["autoriza", "nao_autoriza"])
         marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
 
