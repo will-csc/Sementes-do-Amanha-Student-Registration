@@ -6,14 +6,39 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Search, Pencil, Trash2, UserPlus, Users, GraduationCap, BookOpen } from 'lucide-react';
+import { Search, Pencil, Trash2, UserPlus, Users, GraduationCap, BookOpen, FileDown } from 'lucide-react';
 
 type SearchMode = 'nome' | 'cpf';
 
+function toastError(err: unknown, fallback: string) {
+  const msg = (err instanceof Error ? err.message : '').trim() || fallback;
+  toast.error(msg, { id: `error:${msg}` });
+}
+
 function normalizeDigits(value: string) {
   return value.replace(/\D/g, '');
+}
+
+function normalizeHttpErrorText(text: string, status: number) {
+  const raw = text.trim();
+  if (!raw) return `Erro HTTP ${status}`;
+  const lower = raw.toLowerCase();
+  if (lower.startsWith("<!doctype html") || lower.startsWith("<html") || lower.includes("<head") || lower.includes("<body")) {
+    return `Erro HTTP ${status}`;
+  }
+  const msg = raw.replace(/\s+/g, " ").trim();
+  if (msg.length > 180) return `${msg.slice(0, 177)}...`;
+  return msg || `Erro HTTP ${status}`;
+}
+
+function parseFilenameFromContentDisposition(value: string | null): string | null {
+  if (!value) return null;
+  const match = value.match(/filename="([^"]+)"/i) || value.match(/filename=([^;]+)/i);
+  if (!match) return null;
+  return match[1].trim();
 }
 
 const StudentList = () => {
@@ -22,6 +47,9 @@ const StudentList = () => {
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('nome');
   const [statsFromApi, setStatsFromApi] = useState<{ totalStudents: number; schools: number; thisMonth: number } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const filtered = students.filter((s) => {
     if (!search.trim()) return true;
@@ -67,14 +95,46 @@ const StudentList = () => {
     };
   }, [statsFromApi, students]);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir ${name}?`)) {
-      try {
-        await deleteStudent(id);
-        toast.success('Aluno excluído com sucesso!');
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Falha ao excluir aluno.');
+  const openDeleteDialog = (id: string, name: string) => {
+    setDeleteDialog({ open: true, id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.id) return;
+    setIsDeleting(true);
+    try {
+      await deleteStudent(deleteDialog.id);
+      toast.success('Aluno excluído com sucesso!');
+      setDeleteDialog({ open: false, id: '', name: '' });
+    } catch (e) {
+      toastError(e, 'Falha ao excluir aluno.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const downloadContractPdf = async (studentId: string) => {
+    setDownloadingId(studentId);
+    try {
+      const res = await fetchBackend(`/students/${encodeURIComponent(studentId)}/contract`, {
+        method: "GET",
+        headers: { accept: "application/pdf" },
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(normalizeHttpErrorText(text, res.status));
       }
+      const filename = parseFilenameFromContentDisposition(res.headers.get("content-disposition")) || "contrato.pdf";
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } finally {
+      setDownloadingId((prev) => (prev === studentId ? null : prev));
     }
   };
 
@@ -87,6 +147,35 @@ const StudentList = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
+        <Dialog
+          open={deleteDialog.open}
+          onOpenChange={(open) => {
+            if (isDeleting) return;
+            if (!open) {
+              setDeleteDialog({ open: false, id: '', name: '' });
+              return;
+            }
+            setDeleteDialog((prev) => ({ ...prev, open }));
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Excluir aluno</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja excluir <span className="font-medium text-foreground">{deleteDialog.name}</span>? Essa ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" disabled={isDeleting} onClick={() => setDeleteDialog({ open: false, id: '', name: '' })}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" disabled={isDeleting} onClick={confirmDelete}>
+                {isDeleting ? 'Excluindo...' : 'Excluir'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {cards.map(stat => (
             <Card key={stat.label} className="shadow-card">
@@ -168,10 +257,25 @@ const StudentList = () => {
                         <TableCell className="hidden sm:table-cell text-muted-foreground capitalize">{student.sexo || '-'}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => downloadContractPdf(student.id).catch((e) => toastError(e, "Falha ao baixar contrato."))}
+                              title="Baixar contrato"
+                              disabled={downloadingId === student.id}
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => navigate(`/students/edit/${student.id}`)} title="Editar">
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(student.id, student.nomeCompleto)} title="Excluir" className="text-destructive hover:text-destructive">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDeleteDialog(student.id, student.nomeCompleto)}
+                              title="Excluir"
+                              className="text-destructive hover:text-destructive"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>

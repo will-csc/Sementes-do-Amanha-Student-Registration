@@ -1,6 +1,6 @@
 import React from "react";
 import type { Student, ResponsavelLegal, MembroFamiliar } from "@/types/student";
-import { FormField, formatCpf, formatPhoneBR, formatRg, onlyDigits, onlyLettersAndSpaces } from "@/components/student-form/FormField";
+import { FormField, formatBRL, formatCpf, formatPhoneBR, formatRg, onlyDigits, onlyLettersAndSpaces } from "@/components/student-form/FormField";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -46,9 +46,11 @@ const beneficiosOptions = [
 export default function SectionResponsaveis({
   data,
   onChange,
+  errors,
 }: {
   data: Omit<Student, "id">;
   onChange: (field: string, value: any) => void;
+  errors?: Record<string, string | undefined>;
 }) {
   const updateResponsavel = (index: number, patch: Partial<ResponsavelLegal>) => {
     const next = data.responsaveisLegais.map((r, i) => (i === index ? { ...r, ...patch } : r));
@@ -126,7 +128,14 @@ export default function SectionResponsaveis({
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Nome" id={`resp-${idx}-nome`} type="text" value={r.nome} onChange={(v) => updateResponsavel(idx, { nome: onlyLettersAndSpaces(v) })} />
+                <FormField
+                  label="Nome"
+                  id={`resp-${idx}-nome`}
+                  type="text"
+                  value={r.nome}
+                  onChange={(v) => updateResponsavel(idx, { nome: onlyLettersAndSpaces(v) })}
+                  error={errors?.[`resp-${idx}-nome`]}
+                />
                 <FormField
                   label="Parentesco"
                   id={`resp-${idx}-parentesco`}
@@ -135,8 +144,16 @@ export default function SectionResponsaveis({
                   onChange={(v) => updateResponsavel(idx, { parentesco: v as ResponsavelLegal["parentesco"] })}
                   placeholder="Selecione"
                   options={parentescoOptions}
+                  error={errors?.[`resp-${idx}-parentesco`]}
                 />
-                <FormField label="Nascimento" id={`resp-${idx}-nasc`} type="date" value={r.dataNascimento} onChange={(v) => updateResponsavel(idx, { dataNascimento: v })} />
+                <FormField
+                  label="Nascimento"
+                  id={`resp-${idx}-nasc`}
+                  type="date"
+                  value={r.dataNascimento}
+                  onChange={(v) => updateResponsavel(idx, { dataNascimento: v })}
+                  error={errors?.[`resp-${idx}-nasc`]}
+                />
                 <FormField
                   label="RG"
                   id={`resp-${idx}-rg`}
@@ -145,6 +162,7 @@ export default function SectionResponsaveis({
                   onChange={(v) => updateResponsavel(idx, { rg: onlyDigits(v).slice(0, 9) })}
                   inputMode="numeric"
                   maxLength={12}
+                  error={errors?.[`resp-${idx}-rg`]}
                 />
                 <FormField
                   label="CPF"
@@ -154,6 +172,7 @@ export default function SectionResponsaveis({
                   onChange={(v) => updateResponsavel(idx, { cpf: onlyDigits(v).slice(0, 11) })}
                   inputMode="numeric"
                   maxLength={14}
+                  error={errors?.[`resp-${idx}-cpf`]}
                 />
                 <FormField
                   label="Celular"
@@ -163,8 +182,16 @@ export default function SectionResponsaveis({
                   onChange={(v) => updateResponsavel(idx, { celular: onlyDigits(v).slice(0, 11) })}
                   inputMode="numeric"
                   maxLength={15}
+                  error={errors?.[`resp-${idx}-cel`]}
                 />
-                <FormField label="Operadora" id={`resp-${idx}-op`} type="text" value={r.operadora} onChange={(v) => updateResponsavel(idx, { operadora: onlyLettersAndSpaces(v) })} />
+                <FormField
+                  label="Operadora"
+                  id={`resp-${idx}-op`}
+                  type="text"
+                  value={r.operadora}
+                  onChange={(v) => updateResponsavel(idx, { operadora: onlyLettersAndSpaces(v) })}
+                  error={errors?.[`resp-${idx}-op`]}
+                />
                 <FormField
                   label="WhatsApp"
                   id={`resp-${idx}-whats`}
@@ -173,6 +200,7 @@ export default function SectionResponsaveis({
                   onChange={(v) => updateResponsavel(idx, { whatsapp: onlyDigits(v).slice(0, 11) })}
                   inputMode="numeric"
                   maxLength={15}
+                  error={errors?.[`resp-${idx}-whats`]}
                 />
                 <FormField
                   label="Fixo"
@@ -182,6 +210,7 @@ export default function SectionResponsaveis({
                   onChange={(v) => updateResponsavel(idx, { fixo: onlyDigits(v).slice(0, 11) })}
                   inputMode="numeric"
                   maxLength={15}
+                  error={errors?.[`resp-${idx}-fixo`]}
                 />
               </div>
             </div>
@@ -211,7 +240,14 @@ export default function SectionResponsaveis({
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField label="Nome" id={`membro-${idx}-nome`} type="text" value={m.nome} onChange={(v) => updateMembro(idx, { nome: v })} />
+                  <FormField
+                    label="Nome"
+                    id={`membro-${idx}-nome`}
+                    type="text"
+                    value={m.nome}
+                    onChange={(v) => updateMembro(idx, { nome: v })}
+                    error={errors?.[`membro-${idx}-nome`]}
+                  />
                   <FormField
                     label="Parentesco"
                     id={`membro-${idx}-parentesco`}
@@ -220,9 +256,24 @@ export default function SectionResponsaveis({
                     onChange={(v) => updateMembro(idx, { parentesco: v as MembroFamiliar["parentesco"] })}
                     placeholder="Selecione"
                     options={parentescoOptions}
+                    error={errors?.[`membro-${idx}-parentesco`]}
                   />
-                  <FormField label="Profissão" id={`membro-${idx}-prof`} type="text" value={m.profissao} onChange={(v) => updateMembro(idx, { profissao: v })} />
-                  <FormField label="Renda" id={`membro-${idx}-renda`} type="text" value={m.renda} onChange={(v) => updateMembro(idx, { renda: v })} />
+                  <FormField
+                    label="Profissão"
+                    id={`membro-${idx}-prof`}
+                    type="text"
+                    value={m.profissao}
+                    onChange={(v) => updateMembro(idx, { profissao: v })}
+                    error={errors?.[`membro-${idx}-prof`]}
+                  />
+                  <FormField
+                    label="Renda"
+                    id={`membro-${idx}-renda`}
+                    type="text"
+                    value={m.renda}
+                    onChange={(v) => updateMembro(idx, { renda: v })}
+                    error={errors?.[`membro-${idx}-renda`]}
+                  />
                 </div>
               </div>
             ))}
@@ -239,14 +290,23 @@ export default function SectionResponsaveis({
           onChange={(v) => onChange("estadoCivilPais", v as Student["estadoCivilPais"])}
           placeholder="Selecione"
           options={estadoCivilOptions}
+          error={errors?.estadoCivilPais}
         />
-        <FormField label="Tipo de domicílio" id="tipoDomicilio" type="text" value={data.tipoDomicilio} onChange={(v) => onChange("tipoDomicilio", v)} />
+        <FormField
+          label="Tipo de domicílio"
+          id="tipoDomicilio"
+          type="text"
+          value={data.tipoDomicilio}
+          onChange={(v) => onChange("tipoDomicilio", v)}
+          error={errors?.tipoDomicilio}
+        />
         <FormField
           label="Nome do cônjuge (contato)"
           id="contatoConjugeNome"
           type="text"
           value={data.contatoConjugeNome}
           onChange={(v) => onChange("contatoConjugeNome", onlyLettersAndSpaces(v))}
+          error={errors?.contatoConjugeNome}
         />
         <FormField
           label="Telefone do cônjuge"
@@ -256,15 +316,17 @@ export default function SectionResponsaveis({
           onChange={(v) => onChange("contatoConjugeTelefone", onlyDigits(v).slice(0, 11))}
           inputMode="numeric"
           maxLength={15}
+          error={errors?.contatoConjugeTelefone}
         />
         <FormField
           label="Renda familiar"
           id="rendaFamiliar"
           type="text"
-          value={data.rendaFamiliar}
-          onChange={(v) => onChange("rendaFamiliar", onlyDigits(v))}
+          value={formatBRL(data.rendaFamiliar)}
+          onChange={(v) => onChange("rendaFamiliar", formatBRL(v))}
           inputMode="numeric"
           className="sm:col-span-2"
+          error={errors?.rendaFamiliar}
         />
       </div>
 

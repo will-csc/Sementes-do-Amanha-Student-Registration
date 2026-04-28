@@ -1,6 +1,6 @@
 import React from "react";
 import type { Student } from "@/types/student";
-import { FormField, onlyDigits } from "@/components/student-form/FormField";
+import { FormField, onlyDigits, onlyLettersAndSpaces } from "@/components/student-form/FormField";
 import { Label } from "@/components/ui/label";
 import { RadioGroup } from "@/components/ui/radio-group";
 
@@ -47,17 +47,55 @@ function BinaryRadio({
 export default function SectionSaudeEscolaridade({
   data,
   onChange,
+  errors,
 }: {
   data: Omit<Student, "id">;
   onChange: (field: string, value: any) => void;
+  errors?: Record<string, string | undefined>;
 }) {
+  const normalizeAnoEscolar = (value: string) =>
+    value
+      .replace(/[^\p{L}0-9\sº°]/gu, "")
+      .replace(/\s+/g, " ")
+      .trimStart()
+      .slice(0, 30);
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField label="Escola (nome)" id="escolaNome" type="text" value={data.escolaNome} onChange={(v) => onChange("escolaNome", v)} />
-        <FormField label="Série" id="escolaSerie" type="text" value={data.escolaSerie} onChange={(v) => onChange("escolaSerie", onlyDigits(v))} inputMode="numeric" />
-        <FormField label="Ano" id="escolaAno" type="text" value={data.escolaAno} onChange={(v) => onChange("escolaAno", onlyDigits(v))} inputMode="numeric" />
-        <FormField label="Professor(a)" id="escolaProfessor" type="text" value={data.escolaProfessor} onChange={(v) => onChange("escolaProfessor", v)} />
+        <FormField
+          label="Escola (nome)"
+          id="escolaNome"
+          type="text"
+          value={data.escolaNome}
+          onChange={(v) => onChange("escolaNome", v)}
+          error={errors?.escolaNome}
+        />
+        <FormField
+          label="Série"
+          id="escolaSerie"
+          type="text"
+          value={data.escolaSerie}
+          onChange={(v) => onChange("escolaSerie", onlyDigits(v))}
+          inputMode="numeric"
+          error={errors?.escolaSerie}
+        />
+        <FormField
+          label="Ano"
+          id="escolaAno"
+          type="text"
+          value={data.escolaAno}
+          onChange={(v) => onChange("escolaAno", normalizeAnoEscolar(v))}
+          error={errors?.escolaAno}
+        />
+        <FormField
+          label="Professor(a)"
+          id="escolaProfessor"
+          type="text"
+          value={data.escolaProfessor}
+          onChange={(v) => onChange("escolaProfessor", onlyLettersAndSpaces(v))}
+          error={errors?.escolaProfessor}
+        />
         <FormField
           label="Período"
           id="escolaPeriodo"
@@ -71,6 +109,7 @@ export default function SectionSaudeEscolaridade({
             { value: "noite", label: "Noite" },
             { value: "integral", label: "Integral" },
           ]}
+          error={errors?.escolaPeriodo}
         />
         <FormField
           label="Histórico escolar"
@@ -80,11 +119,19 @@ export default function SectionSaudeEscolaridade({
           onChange={(v) => onChange("historicoEscolar", v)}
           className="sm:col-span-2"
           placeholder="Observações, reprovações, reforço, etc."
+          error={errors?.historicoEscolar}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField label="UBS referência" id="ubsReferencia" type="text" value={data.ubsReferencia} onChange={(v) => onChange("ubsReferencia", v)} />
+        <FormField
+          label="UBS referência"
+          id="ubsReferencia"
+          type="text"
+          value={data.ubsReferencia}
+          onChange={(v) => onChange("ubsReferencia", v)}
+          error={errors?.ubsReferencia}
+        />
         <FormField
           label="Acompanhamentos"
           id="acompanhamentos"
@@ -92,6 +139,7 @@ export default function SectionSaudeEscolaridade({
           value={data.acompanhamentos}
           onChange={(v) => onChange("acompanhamentos", v)}
           placeholder="Psicólogo, fono, CAPS, etc."
+          error={errors?.acompanhamentos}
         />
       </div>
 
@@ -104,6 +152,7 @@ export default function SectionSaudeEscolaridade({
             type="textarea"
             value={data.problemaSaudeDescricao}
             onChange={(v) => onChange("problemaSaudeDescricao", v)}
+            error={errors?.problemaSaudeDescricao}
           />
         )}
 
@@ -115,6 +164,7 @@ export default function SectionSaudeEscolaridade({
             type="textarea"
             value={data.restricoesDescricao}
             onChange={(v) => onChange("restricoesDescricao", v)}
+            error={errors?.restricoesDescricao}
           />
         )}
 
@@ -126,6 +176,7 @@ export default function SectionSaudeEscolaridade({
             type="textarea"
             value={data.medicamentosDescricao}
             onChange={(v) => onChange("medicamentosDescricao", v)}
+            error={errors?.medicamentosDescricao}
           />
         )}
 
@@ -137,6 +188,7 @@ export default function SectionSaudeEscolaridade({
             type="textarea"
             value={data.alergiasDescricao}
             onChange={(v) => onChange("alergiasDescricao", v)}
+            error={errors?.alergiasDescricao}
           />
         )}
 
@@ -148,6 +200,7 @@ export default function SectionSaudeEscolaridade({
             type="textarea"
             value={data.deficienciaDescricao}
             onChange={(v) => onChange("deficienciaDescricao", v)}
+            error={errors?.deficienciaDescricao}
           />
         )}
       </div>

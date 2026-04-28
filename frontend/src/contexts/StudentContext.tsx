@@ -29,59 +29,45 @@ interface StudentContextValue {
 const StudentContext = createContext<StudentContextValue | null>(null);
 
 const DEFAULT_LOCAL_API_BASE_URL = "http://localhost:3000";
-const API_BASE_URL_PRIMARY: string = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
-const API_BASE_URL_FALLBACK: string = (import.meta.env.VITE_API_URL_FALLBACK as string | undefined) ?? DEFAULT_LOCAL_API_BASE_URL;
-
-let activeApiBaseUrl = [API_BASE_URL_PRIMARY, API_BASE_URL_FALLBACK, DEFAULT_LOCAL_API_BASE_URL]
-  .map((v) => v.trim())
-  .filter(Boolean)[0]!;
+const API_BASE_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_LOCAL_API_BASE_URL;
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
 
-function getApiBaseCandidates(): string[] {
-  const all = [API_BASE_URL_PRIMARY, API_BASE_URL_FALLBACK, DEFAULT_LOCAL_API_BASE_URL]
-    .map((v) => v.trim())
-    .filter(Boolean)
-    .map(normalizeBaseUrl);
-  return Array.from(new Set(all));
+function isLikelyHtml(value: string) {
+  const v = value.trim().toLowerCase();
+  return v.startsWith("<!doctype html") || v.startsWith("<html") || v.includes("<head") || v.includes("<body");
 }
 
-function canRetryWithFallback(method: string, status: number) {
-  const m = method.toUpperCase();
-  if (m !== "GET") return false;
-  return status === 502 || status === 503 || status === 504;
+function normalizeErrorMessage(value: string, status: number) {
+  const raw = value.trim();
+  if (!raw) return `Erro HTTP ${status}`;
+  if (isLikelyHtml(raw)) return `Erro HTTP ${status}`;
+
+  let msg = raw;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (typeof parsed === "string") msg = parsed;
+    else if (parsed && typeof parsed === "object") {
+      const any = parsed as Record<string, unknown>;
+      if (typeof any.message === "string") msg = any.message;
+      else if (typeof any.error === "string") msg = any.error;
+    }
+  } catch {}
+
+  msg = msg.replace(/\s+/g, " ").trim();
+  if (msg.length > 180) msg = `${msg.slice(0, 177)}...`;
+  return msg || `Erro HTTP ${status}`;
 }
 
 export async function fetchBackend(path: string, init?: RequestInit, actorEmail?: string): Promise<Response> {
-  const method = (init?.method ?? "GET").toUpperCase();
   const headers = new Headers(init?.headers);
   if (!headers.has("accept")) headers.set("accept", "application/json");
   if (init?.body && !headers.has("content-type")) headers.set("content-type", "application/json");
   if (actorEmail) headers.set("x-user-email", actorEmail);
-
-  const candidates = getApiBaseCandidates();
-  const preferred = normalizeBaseUrl(activeApiBaseUrl);
-  const ordered = [preferred, ...candidates.filter((c) => c !== preferred)];
-
-  let lastError: unknown = undefined;
-
-  for (const base of ordered) {
-    try {
-      const res = await fetch(`${base}${path}`, { ...init, headers });
-      if (res.ok || !canRetryWithFallback(method, res.status)) {
-        activeApiBaseUrl = base;
-        return res;
-      }
-      lastError = new Error(`Erro HTTP ${res.status}`);
-    } catch (e) {
-      lastError = e;
-    }
-  }
-
-  if (lastError instanceof Error) throw lastError;
-  throw new Error("Falha de comunicação com o servidor.");
+  const base = normalizeBaseUrl(API_BASE_URL.trim() || DEFAULT_LOCAL_API_BASE_URL);
+  return fetch(`${base}${path}`, { ...init, headers });
 }
 
 type ApiStudentListItem = {
@@ -119,7 +105,7 @@ async function apiRequest<T>(path: string, init?: RequestInit, actorEmail?: stri
   const res = await fetchBackend(path, init, actorEmail);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(text || `Erro HTTP ${res.status}`);
+    throw new Error(normalizeErrorMessage(text, res.status));
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

@@ -6,7 +6,9 @@ export function Toaster() {
     <SonnerToaster
       closeButton
       richColors
-      position="top-right"
+      position="top-center"
+      duration={5000}
+      offset={{ top: "45%" }}
     />
   );
 }
