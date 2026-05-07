@@ -23,17 +23,33 @@ def _ensure_column(table_name, column_name, sql_definition):
         connection.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {sql_definition}")
 
 
+def _sql_definitions():
+    dialect = db.engine.dialect.name
+    is_postgres = dialect == "postgresql"
+
+    return {
+        "status": "TEXT NOT NULL DEFAULT 'pending'",
+        "approved_at": "TIMESTAMP WITH TIME ZONE" if is_postgres else "DATETIME",
+        "rejected_at": "TIMESTAMP WITH TIME ZONE" if is_postgres else "DATETIME",
+        "foto_crianca": "TEXT",
+        "beneficio_outros": "TEXT",
+        "ativo": "BOOLEAN NOT NULL DEFAULT TRUE" if is_postgres else "BOOLEAN NOT NULL DEFAULT 1",
+        "unidade": "TEXT",
+    }
+
+
 def ensure_schema():
     db.create_all()
+    sql = _sql_definitions()
 
-    _ensure_column("users", "status", "TEXT NOT NULL DEFAULT 'pending'")
-    _ensure_column("users", "approved_at", "DATETIME")
-    _ensure_column("users", "rejected_at", "DATETIME")
+    _ensure_column("users", "status", sql["status"])
+    _ensure_column("users", "approved_at", sql["approved_at"])
+    _ensure_column("users", "rejected_at", sql["rejected_at"])
 
-    _ensure_column("students", "foto_crianca", "TEXT")
-    _ensure_column("students", "beneficio_outros", "TEXT")
-    _ensure_column("students", "ativo", "BOOLEAN NOT NULL DEFAULT 1")
-    _ensure_column("students", "unidade", "TEXT")
+    _ensure_column("students", "foto_crianca", sql["foto_crianca"])
+    _ensure_column("students", "beneficio_outros", sql["beneficio_outros"])
+    _ensure_column("students", "ativo", sql["ativo"])
+    _ensure_column("students", "unidade", sql["unidade"])
 
 
 def ensure_default_admin():
