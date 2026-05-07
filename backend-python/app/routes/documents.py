@@ -1,18 +1,27 @@
-from flask import Blueprint, jsonify, abort, request, send_file
+from flask import Blueprint, jsonify, request, send_file
 from pathlib import Path
 from app.services.document_service import preencher_documento, mapear_student_para_word
 from zipfile import ZipFile
-import tempfile
-import os
 from datetime import datetime
 from io import BytesIO
 
 bp = Blueprint("documents", __name__, url_prefix="/documents")
 
-# Localização dos templates .docx
-# Subimos níveis para garantir que encontre a pasta 'docs' na raiz do projeto
-BASE_DIR = Path(__file__).resolve().parent.parent
-DOCS_DIR = BASE_DIR / "docs" / "forms"
+def _resolve_docs_dir():
+    project_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        project_root / "docs" / "forms",
+        project_root / "app" / "docs" / "forms",
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return candidates[0]
+
+
+DOCS_DIR = _resolve_docs_dir()
 TERMOS_PATH = DOCS_DIR / "termos.txt"
 
 DOCUMENTS = {
@@ -29,6 +38,13 @@ DOCUMENTS = {
         "filename": "termo_uso_de_imagem.docx",
     }
 }
+
+
+def _template_path(filename):
+    caminho_template = DOCS_DIR / filename
+    if not caminho_template.exists():
+        raise FileNotFoundError(f"Template não encontrado em '{caminho_template}'")
+    return caminho_template
 
 
 def _parse_terms_file():
@@ -121,14 +137,9 @@ def emitir_todos():
         memory_file = BytesIO()
         with ZipFile(memory_file, 'w') as zf:
             for slug, meta in DOCUMENTS.items():
-                caminho_template = DOCS_DIR / meta["filename"]
-                
-                if caminho_template.exists():
-                    # Chamada corrigida aqui também para manter o padrão
-                    doc_buffer = preencher_documento(str(caminho_template), dados)
-                    zf.writestr(f"{slug}.docx", doc_buffer.getvalue())
-                else:
-                    print(f"Aviso: Template não encontrado em {caminho_template}")
+                caminho_template = _template_path(meta["filename"])
+                doc_buffer = preencher_documento(str(caminho_template), dados)
+                zf.writestr(f"{slug}.docx", doc_buffer.getvalue())
 
         memory_file.seek(0)
         
@@ -168,9 +179,8 @@ def emitir_word(slug):
         marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
         completar_dados(dados)
 
-        caminho_template = DOCS_DIR / meta["filename"]
+        caminho_template = _template_path(meta["filename"])
         
-        # IMPORTANTE: Passando caminho e dados para a função
         output = preencher_documento(str(caminho_template), dados)
 
         return send_file(
