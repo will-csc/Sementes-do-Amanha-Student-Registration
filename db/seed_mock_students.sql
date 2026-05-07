@@ -1,8 +1,7 @@
--- Script de seed para o backend Python (SQLite)
--- Não possui COMMIT explícito, conforme solicitado.
--- Pode ser executado inteiro de uma vez.
+-- Seed minimo para o banco PostgreSQL do projeto.
+-- Este arquivo insere somente 3 estudantes de exemplo.
 
-INSERT OR IGNORE INTO users (
+INSERT INTO users (
   name,
   email,
   role,
@@ -23,7 +22,8 @@ VALUES (
   '2026-05-06 09:00:00',
   '2026-05-06 09:00:00',
   NULL
-);
+)
+ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO students (
   nome_completo,
@@ -93,7 +93,7 @@ SELECT
   '',
   '2016-03-15',
   10,
-  'Taboão da Serra/SP',
+  'Taboao da Serra/SP',
   'Parda',
   'Feminino',
   '456789123',
@@ -107,7 +107,7 @@ SELECT
   '120',
   'Casa 2',
   'Jardim Mirna',
-  'Taboão da Serra',
+  'Taboao da Serra',
   'SP',
   'Carlos Souza',
   'Fernanda Souza',
@@ -118,31 +118,31 @@ SELECT
   'Alugado',
   'R$ 2.350,00',
   '',
-  1,
+  true,
   'Unidade Mirna',
   'EMEF Monte Alegre',
-  '5ª série',
-  '5º ano',
+  '5a serie',
+  '5o ano',
   'Juliana Lima',
   'Tarde',
-  'Sem ocorrências relevantes.',
+  'Sem ocorrencias relevantes.',
   'UBS Jardim Record',
-  0,
+  false,
   '',
-  1,
-  'Restrição a corantes artificiais.',
-  0,
+  true,
+  'Restricao a corantes artificiais.',
+  false,
   '',
-  1,
+  true,
   'Alergia a poeira.',
-  'Acompanhamento social no território.',
-  0,
+  'Acompanhamento social no territorio.',
+  false,
   '',
-  1,
+  true,
   'Precisa de apoio nas travessias de rua.',
-  'Balé e reforço escolar.',
-  1,
-  1,
+  'Bale e reforco escolar.',
+  true,
+  true,
   'somente-com-responsavel',
   '2026-05-06 10:00:00',
   (SELECT id FROM users WHERE email = 'adm@sementesdoamanha.com' AND deleted_at IS NULL LIMIT 1),
@@ -216,11 +216,11 @@ INSERT INTO students (
   updated_by_email
 )
 SELECT
-  'João Pedro Lima',
+  'Joao Pedro Lima',
   '',
   '2014-08-21',
   11,
-  'São Paulo/SP',
+  'Sao Paulo/SP',
   'Branca',
   'Masculino',
   '334455667',
@@ -230,46 +230,46 @@ SELECT
   '202',
   'CD456',
   '06766010',
-  'Avenida dos Ipês',
+  'Avenida dos Ipes',
   '45',
   'Bloco B',
   'Parque Pinheiros',
-  'Taboão da Serra',
+  'Taboao da Serra',
   'SP',
-  'Rogério Lima',
-  'Patrícia Lima',
+  'Rogerio Lima',
+  'Patricia Lima',
   'CRAS Parque Pinheiros',
-  'União Estável',
-  'Patrícia Lima',
+  'Uniao Estavel',
+  'Patricia Lima',
   '11981234567',
-  'Próprio',
+  'Proprio',
   'R$ 3.100,00',
-  'Auxílio transporte escolar',
-  1,
+  'Auxilio transporte escolar',
+  true,
   'Unidade Centro',
   'EMEF Machado de Assis',
-  '6ª série',
-  '6º ano',
+  '6a serie',
+  '6o ano',
   'Ricardo Alves',
-  'Manhã',
+  'Manha',
   'Mudou de escola em 2025.',
   'UBS Oliveiras',
-  1,
+  true,
   'Asma leve.',
-  0,
+  false,
   '',
-  1,
-  'Bombinha quando necessário.',
-  0,
+  true,
+  'Bombinha quando necessario.',
+  false,
   '',
   'Acompanhamento no CAPS infantil.',
-  0,
+  false,
   '',
-  0,
+  false,
   '',
   'Futebol.',
-  1,
-  0,
+  true,
+  false,
   'sim',
   '2026-05-06 10:15:00',
   (SELECT id FROM users WHERE email = 'adm@sementesdoamanha.com' AND deleted_at IS NULL LIMIT 1),
@@ -357,11 +357,11 @@ SELECT
   '303',
   'EF789',
   '06767020',
-  'Rua Esperança',
+  'Rua Esperanca',
   '300',
   '',
   'Jardim Saint Moritz',
-  'Taboão da Serra',
+  'Taboao da Serra',
   'SP',
   'Paulo Santos',
   'Luciana Santos',
@@ -372,31 +372,31 @@ SELECT
   'Cedido',
   'R$ 1.780,00',
   '',
-  0,
-  'Unidade São Judas',
+  true,
+  'Unidade Sao Judas',
   'EE Professora Zilda Natel',
-  '8ª série',
-  '8º ano',
-  'Marcos Vinícius',
+  '8a serie',
+  '8o ano',
+  'Marcos Vinicius',
   'Integral',
-  'Retornou às aulas após mudança de endereço.',
-  'UBS Santa Cecília',
-  0,
+  'Retornou as aulas apos mudanca de endereco.',
+  'UBS Santa Cecilia',
+  false,
   '',
-  0,
+  false,
   '',
-  0,
+  false,
   '',
-  1,
-  'Alergia a camarão.',
+  true,
+  'Alergia a camarao.',
   'Atendimento psicossocial eventual.',
-  1,
-  'Baixa visão no olho esquerdo.',
-  1,
+  true,
+  'Baixa visao no olho esquerdo.',
+  true,
   'Necessita apoio no deslocamento noturno.',
   'Oficina de artes e coral.',
-  1,
-  1,
+  true,
+  true,
   'nao',
   '2026-05-06 10:30:00',
   (SELECT id FROM users WHERE email = 'adm@sementesdoamanha.com' AND deleted_at IS NULL LIMIT 1),
@@ -405,180 +405,3 @@ SELECT
   (SELECT id FROM users WHERE email = 'adm@sementesdoamanha.com' AND deleted_at IS NULL LIMIT 1),
   'adm@sementesdoamanha.com'
 WHERE NOT EXISTS (SELECT 1 FROM students WHERE cpf = '34567890123');
-
-INSERT INTO student_responsaveis_legais (student_id, posicao, nome, data_nascimento, rg, cpf, celular, operadora, whatsapp, fixo, parentesco)
-SELECT id, 1, 'Fernanda Souza', '1987-09-10', '221334455', '45678912300', '11987654321', 'Vivo', '11987654321', '1140023001', 'Mãe'
-FROM students
-WHERE cpf = '12345678901'
-  AND NOT EXISTS (SELECT 1 FROM student_responsaveis_legais WHERE student_id = students.id AND posicao = 1);
-
-INSERT INTO student_responsaveis_legais (student_id, posicao, nome, data_nascimento, rg, cpf, celular, operadora, whatsapp, fixo, parentesco)
-SELECT id, 2, 'Carlos Souza', '1984-04-22', '554433221', '45678912311', '11999887766', 'Claro', '11999887766', '1140023002', 'Pai'
-FROM students
-WHERE cpf = '12345678901'
-  AND NOT EXISTS (SELECT 1 FROM student_responsaveis_legais WHERE student_id = students.id AND posicao = 2);
-
-INSERT INTO student_responsaveis_legais (student_id, posicao, nome, data_nascimento, rg, cpf, celular, operadora, whatsapp, fixo, parentesco)
-SELECT id, 1, 'Patrícia Lima', '1988-01-15', '112233445', '56789012344', '11981234567', 'TIM', '11981234567', '1140112200', 'Mãe'
-FROM students
-WHERE cpf = '23456789012'
-  AND NOT EXISTS (SELECT 1 FROM student_responsaveis_legais WHERE student_id = students.id AND posicao = 1);
-
-INSERT INTO student_responsaveis_legais (student_id, posicao, nome, data_nascimento, rg, cpf, celular, operadora, whatsapp, fixo, parentesco)
-SELECT id, 2, 'Rogério Lima', '1983-12-02', '667788990', '56789012355', '11981110000', 'Vivo', '11981110000', '1140112201', 'Pai'
-FROM students
-WHERE cpf = '23456789012'
-  AND NOT EXISTS (SELECT 1 FROM student_responsaveis_legais WHERE student_id = students.id AND posicao = 2);
-
-INSERT INTO student_responsaveis_legais (student_id, posicao, nome, data_nascimento, rg, cpf, celular, operadora, whatsapp, fixo, parentesco)
-SELECT id, 1, 'Luciana Santos', '1985-05-19', '778899001', '67890123455', '11992345678', 'Claro', '11992345678', '1140998877', 'Mãe'
-FROM students
-WHERE cpf = '34567890123'
-  AND NOT EXISTS (SELECT 1 FROM student_responsaveis_legais WHERE student_id = students.id AND posicao = 1);
-
-INSERT INTO student_responsaveis_legais (student_id, posicao, nome, data_nascimento, rg, cpf, celular, operadora, whatsapp, fixo, parentesco)
-SELECT id, 2, 'Paulo Santos', '1982-03-30', '665544332', '67890123466', '11993456789', 'TIM', '11993456789', '1140998878', 'Pai'
-FROM students
-WHERE cpf = '34567890123'
-  AND NOT EXISTS (SELECT 1 FROM student_responsaveis_legais WHERE student_id = students.id AND posicao = 2);
-
-INSERT INTO student_membros_familiares (student_id, nome, parentesco, profissao, renda)
-SELECT id, 'Pedro Souza', 'Irmão', 'Estudante', 'R$ 0,00'
-FROM students
-WHERE cpf = '12345678901'
-  AND NOT EXISTS (SELECT 1 FROM student_membros_familiares WHERE student_id = students.id AND nome = 'Pedro Souza');
-
-INSERT INTO student_membros_familiares (student_id, nome, parentesco, profissao, renda)
-SELECT id, 'Helena Lima', 'Irmã', 'Estudante', 'R$ 0,00'
-FROM students
-WHERE cpf = '23456789012'
-  AND NOT EXISTS (SELECT 1 FROM student_membros_familiares WHERE student_id = students.id AND nome = 'Helena Lima');
-
-INSERT INTO student_membros_familiares (student_id, nome, parentesco, profissao, renda)
-SELECT id, 'Dona Célia Santos', 'Avó', 'Aposentada', 'R$ 1.412,00'
-FROM students
-WHERE cpf = '34567890123'
-  AND NOT EXISTS (SELECT 1 FROM student_membros_familiares WHERE student_id = students.id AND nome = 'Dona Célia Santos');
-
-INSERT INTO student_pessoas_autorizadas (student_id, nome, documento, parentesco, telefone)
-SELECT id, 'Mariana Souza', '78901234567', 'Tia', '11995554444'
-FROM students
-WHERE cpf = '12345678901'
-  AND NOT EXISTS (SELECT 1 FROM student_pessoas_autorizadas WHERE student_id = students.id AND documento = '78901234567');
-
-INSERT INTO student_pessoas_autorizadas (student_id, nome, documento, parentesco, telefone)
-SELECT id, 'José Lima', '78901234568', 'Avô', '11994443333'
-FROM students
-WHERE cpf = '23456789012'
-  AND NOT EXISTS (SELECT 1 FROM student_pessoas_autorizadas WHERE student_id = students.id AND documento = '78901234568');
-
-INSERT INTO student_pessoas_autorizadas (student_id, nome, documento, parentesco, telefone)
-SELECT id, 'Renata Santos', '78901234569', 'Tia', '11993332222'
-FROM students
-WHERE cpf = '34567890123'
-  AND NOT EXISTS (SELECT 1 FROM student_pessoas_autorizadas WHERE student_id = students.id AND documento = '78901234569');
-
-INSERT OR IGNORE INTO student_beneficios (student_id, beneficio)
-SELECT id, 'Bolsa Família' FROM students WHERE cpf = '12345678901';
-
-INSERT OR IGNORE INTO student_beneficios (student_id, beneficio)
-SELECT id, 'Tarifa Social' FROM students WHERE cpf = '12345678901';
-
-INSERT OR IGNORE INTO student_beneficios (student_id, beneficio)
-SELECT id, 'Outros' FROM students WHERE cpf = '23456789012';
-
-INSERT OR IGNORE INTO student_beneficios (student_id, beneficio)
-SELECT id, 'BPC' FROM students WHERE cpf = '34567890123';
-
-INSERT OR IGNORE INTO student_interacao_social (student_id, item)
-SELECT id, 'Família' FROM students WHERE cpf = '12345678901';
-
-INSERT OR IGNORE INTO student_interacao_social (student_id, item)
-SELECT id, 'Amigos' FROM students WHERE cpf = '12345678901';
-
-INSERT OR IGNORE INTO student_interacao_social (student_id, item)
-SELECT id, 'Escola' FROM students WHERE cpf = '23456789012';
-
-INSERT OR IGNORE INTO student_interacao_social (student_id, item)
-SELECT id, 'Comunidade' FROM students WHERE cpf = '34567890123';
-
-INSERT OR IGNORE INTO student_locais_lazer (student_id, item)
-SELECT id, 'Praça' FROM students WHERE cpf = '12345678901';
-
-INSERT OR IGNORE INTO student_locais_lazer (student_id, item)
-SELECT id, 'Quadra' FROM students WHERE cpf = '23456789012';
-
-INSERT OR IGNORE INTO student_locais_lazer (student_id, item)
-SELECT id, 'Casa de parentes' FROM students WHERE cpf = '34567890123';
-
-INSERT OR IGNORE INTO student_servicos_utilizados (student_id, item)
-SELECT id, 'CRAS' FROM students WHERE cpf = '12345678901';
-
-INSERT OR IGNORE INTO student_servicos_utilizados (student_id, item)
-SELECT id, 'CAPS' FROM students WHERE cpf = '23456789012';
-
-INSERT OR IGNORE INTO student_servicos_utilizados (student_id, item)
-SELECT id, 'UBS' FROM students WHERE cpf = '34567890123';
-
-INSERT INTO student_transporte (student_id, utiliza_van, endereco_rota, observacoes)
-SELECT id, 'Lista de espera', 'Ponto da padaria central', 'Aguardando vaga na rota da tarde.'
-FROM students
-WHERE cpf = '12345678901'
-  AND NOT EXISTS (SELECT 1 FROM student_transporte WHERE student_id = students.id);
-
-INSERT INTO student_transporte (student_id, utiliza_van, endereco_rota, observacoes)
-SELECT id, 'Sim', 'Rua principal do bairro', 'Buscar às 07:10.'
-FROM students
-WHERE cpf = '23456789012'
-  AND NOT EXISTS (SELECT 1 FROM student_transporte WHERE student_id = students.id);
-
-INSERT INTO student_transporte (student_id, utiliza_van, endereco_rota, observacoes)
-SELECT id, 'Não', '', 'Família leva e busca.'
-FROM students
-WHERE cpf = '34567890123'
-  AND NOT EXISTS (SELECT 1 FROM student_transporte WHERE student_id = students.id);
-
-INSERT INTO student_attendance (student_id, data, status)
-SELECT id, '2026-05-05', 'Presença'
-FROM students
-WHERE cpf = '12345678901'
-  AND NOT EXISTS (SELECT 1 FROM student_attendance WHERE student_id = students.id AND data = '2026-05-05');
-
-INSERT INTO student_attendance (student_id, data, status)
-SELECT id, '2026-05-05', 'Falta'
-FROM students
-WHERE cpf = '23456789012'
-  AND NOT EXISTS (SELECT 1 FROM student_attendance WHERE student_id = students.id AND data = '2026-05-05');
-
-INSERT INTO student_attendance (student_id, data, status)
-SELECT id, '2026-05-05', 'Presença'
-FROM students
-WHERE cpf = '34567890123'
-  AND NOT EXISTS (SELECT 1 FROM student_attendance WHERE student_id = students.id AND data = '2026-05-05');
-
-INSERT INTO student_audit_events (student_id, student_name, action, at, by_user_id, by_email, changed_fields)
-SELECT id, nome_completo, 'create', '2026-05-06 10:00:00',
-  (SELECT id FROM users WHERE email = 'adm@sementesdoamanha.com' AND deleted_at IS NULL LIMIT 1),
-  'adm@sementesdoamanha.com',
-  NULL
-FROM students
-WHERE cpf = '12345678901'
-  AND NOT EXISTS (SELECT 1 FROM student_audit_events WHERE student_id = students.id AND action = 'create');
-
-INSERT INTO student_audit_events (student_id, student_name, action, at, by_user_id, by_email, changed_fields)
-SELECT id, nome_completo, 'create', '2026-05-06 10:15:00',
-  (SELECT id FROM users WHERE email = 'adm@sementesdoamanha.com' AND deleted_at IS NULL LIMIT 1),
-  'adm@sementesdoamanha.com',
-  NULL
-FROM students
-WHERE cpf = '23456789012'
-  AND NOT EXISTS (SELECT 1 FROM student_audit_events WHERE student_id = students.id AND action = 'create');
-
-INSERT INTO student_audit_events (student_id, student_name, action, at, by_user_id, by_email, changed_fields)
-SELECT id, nome_completo, 'create', '2026-05-06 10:30:00',
-  (SELECT id FROM users WHERE email = 'adm@sementesdoamanha.com' AND deleted_at IS NULL LIMIT 1),
-  'adm@sementesdoamanha.com',
-  NULL
-FROM students
-WHERE cpf = '34567890123'
-  AND NOT EXISTS (SELECT 1 FROM student_audit_events WHERE student_id = students.id AND action = 'create');

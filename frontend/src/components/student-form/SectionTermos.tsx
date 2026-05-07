@@ -2,7 +2,6 @@ import React from "react";
 import type { Student, PessoaAutorizada, AutorizacaoSaida } from "@/types/student";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { FormField, formatCpf, formatPhoneBR, onlyDigits, onlyLettersAndSpaces } from "@/components/student-form/FormField";
 import { fetchBackend } from "@/contexts/StudentContext";
@@ -54,7 +53,6 @@ export default function SectionTermos({
   onChange: (field: string, value: any) => void;
   errors?: Record<string, string | undefined>;
 }) {
-  const [termoAberto, setTermoAberto] = React.useState<TermoKey | null>(null);
   const [termosTexto, setTermosTexto] = React.useState<Record<TermoKey, string>>(fallbackTermosTexto);
 
   React.useEffect(() => {
@@ -99,32 +97,22 @@ export default function SectionTermos({
     );
   };
 
-  const termoTitulo =
-    termoAberto === "saida"
-      ? "Termo de saída"
-      : termoAberto === "responsabilidade"
-        ? "Termo de responsabilidade"
-        : termoAberto === "imagem"
-          ? "Termo de imagem"
-          : termoAberto === "pessoas_autorizadas"
-            ? "Termo de pessoas autorizadas"
-          : "";
-
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold">Termos</h3>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setTermoAberto("responsabilidade")}>
-              Ver termo de responsabilidade
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setTermoAberto("saida")}>
-              Ver termo de saída
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setTermoAberto("imagem")}>
-              Ver termo de imagem
-            </Button>
+        <h3 className="text-sm font-semibold">Termos</h3>
+        <div className="space-y-4">
+          <div className="rounded-lg border bg-muted/20 p-4">
+            <h4 className="mb-2 text-sm font-medium">Termo de responsabilidade</h4>
+            <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">{termosTexto.responsabilidade}</div>
+          </div>
+          <div className="rounded-lg border bg-muted/20 p-4">
+            <h4 className="mb-2 text-sm font-medium">Termo de saída</h4>
+            <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">{termosTexto.saida}</div>
+          </div>
+          <div className="rounded-lg border bg-muted/20 p-4">
+            <h4 className="mb-2 text-sm font-medium">Termo de imagem</h4>
+            <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">{termosTexto.imagem}</div>
           </div>
         </div>
         <label className="flex items-center gap-2 rounded-md border p-2">
@@ -165,14 +153,9 @@ export default function SectionTermos({
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">Pessoas autorizadas</h3>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setTermoAberto("pessoas_autorizadas")}>
-              Ver termo
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={addPessoa}>
-              Adicionar pessoa
-            </Button>
-          </div>
+          <Button type="button" variant="outline" size="sm" onClick={addPessoa}>
+            Adicionar pessoa
+          </Button>
         </div>
 
         {data.pessoasAutorizadas.length === 0 ? (
@@ -234,22 +217,6 @@ export default function SectionTermos({
         )}
       </div>
 
-      <Dialog open={termoAberto !== null} onOpenChange={(open) => !open && setTermoAberto(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{termoTitulo}</DialogTitle>
-            <DialogDescription>Leia o resumo abaixo antes de confirmar as autorizações.</DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto rounded-lg border bg-muted/30 p-4 text-sm leading-6 text-foreground">
-            {termoAberto ? termosTexto[termoAberto] : ""}
-          </div>
-          <DialogFooter className="mt-4">
-            <Button type="button" onClick={() => setTermoAberto(null)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
