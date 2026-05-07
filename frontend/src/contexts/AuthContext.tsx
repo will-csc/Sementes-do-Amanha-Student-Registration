@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 type Role = "admin" | "user";
 
@@ -9,6 +9,12 @@ export interface AuthUser {
   name?: string;
   email: string;
   role: Role;
+}
+
+interface StoredSession {
+  user: AuthUser;
+  startedAt: string;
+  expiresAt: string;
 }
 
 export interface Account {
@@ -30,12 +36,13 @@ export type AuthAttemptResult =
 interface AuthContextValue {
   user: AuthUser | null;
   accounts: Account[];
-  login: (email: string, password: string) => AuthAttemptResult;
-  signup: (email: string, password: string, name?: string) => AuthAttemptResult;
+  isReady: boolean;
+  login: (email: string, password: string) => Promise<AuthAttemptResult>;
+  signup: (email: string, password: string, name?: string) => Promise<AuthAttemptResult>;
   logout: () => void;
-  deleteAccount: (id: string) => void;
-  approveAccount: (id: string) => void;
-  rejectAccount: (id: string) => void;
+  deleteAccount: (id: string) => Promise<void>;
+  approveAccount: (id: string) => Promise<void>;
+  rejectAccount: (id: string) => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -55,9 +62,11 @@ function createId() {
 }
 
 const storageKeys = {
-  accounts: "sda.accounts",
   session: "sda.session",
 } as const;
+const DEFAULT_LOCAL_API_BASE_URL = "http://localhost:10000";
+const API_BASE_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_LOCAL_API_BASE_URL;
+const SESSION_DURATION_MS = 60 * 60 * 1000;
 
 function safeParseJson<T>(value: string | null): T | null {
   if (!value) return null;
@@ -68,160 +77,252 @@ function safeParseJson<T>(value: string | null): T | null {
   }
 }
 
+function normalizeBaseUrl(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+function normalizeErrorMessage(value: string, status: number) {
+  const raw = value.trim();
+  if (!raw) return `Erro HTTP ${status}`;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof parsed.error === "string" && parsed.error.trim()) return parsed.error.trim();
+    if (typeof parsed.message === "string" && parsed.message.trim()) return parsed.message.trim();
+  } catch {}
+  return raw;
+}
+
+async function fetchAuthBackend(path: string, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  if (!headers.has("accept")) headers.set("accept", "application/json");
+  if (init?.body && !headers.has("content-type")) headers.set("content-type", "application/json");
+  return fetch(`${normalizeBaseUrl(API_BASE_URL.trim() || DEFAULT_LOCAL_API_BASE_URL)}${path}`, { ...init, headers });
+}
+
+function normalizeAccount(account: Partial<Account> & { id: string; email: string }): Account {
+  const status: AccountStatus = account.status || "pending";
+  const role = (account.role || inferRole(account.email)) as Role;
+  return {
+    ...account,
+    id: account.id,
+    email: account.email,
+    role,
+    status,
+    createdAt: account.createdAt || new Date().toISOString(),
+    lastLoginAt: account.lastLoginAt || account.createdAt || new Date().toISOString(),
+    approvedAt: status === "approved" ? account.approvedAt || account.createdAt : undefined,
+    rejectedAt: status === "rejected" ? account.rejectedAt || account.createdAt : undefined,
+  };
+}
+
+function normalizeAuthUser(value: Partial<Account> & { id: string; email: string }): AuthUser {
+  return {
+    id: value.id,
+    email: value.email,
+    role: (value.role || inferRole(value.email)) as Role,
+    name: value.name,
+  };
+}
+
+function buildStoredSession(user: AuthUser, startedAt = new Date()) : StoredSession {
+  return {
+    user,
+    startedAt: startedAt.toISOString(),
+    expiresAt: new Date(startedAt.getTime() + SESSION_DURATION_MS).toISOString(),
+  };
+}
+
+function parseStoredSession(value: string | null): StoredSession | null {
+  const parsed = safeParseJson<StoredSession | AuthUser>(value);
+  if (!parsed) return null;
+
+  if ("user" in parsed && parsed.user && typeof parsed.user === "object") {
+    const expiresAt = parsed.expiresAt ? new Date(parsed.expiresAt) : new Date(0);
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) return null;
+    return {
+      user: { ...parsed.user, role: inferRole(parsed.user.email) },
+      startedAt: parsed.startedAt,
+      expiresAt: parsed.expiresAt,
+    };
+  }
+
+  const legacyUser = parsed as AuthUser;
+  return buildStoredSession({ ...legacyUser, role: inferRole(legacyUser.email) });
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [accounts, setAccounts] = useState<Account[]>(() => {
-    const parsed = safeParseJson<Account[]>(localStorage.getItem(storageKeys.accounts));
-    if (!Array.isArray(parsed)) return [];
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [isReady, setIsReady] = useState(false);
 
-    return parsed.map((a) => {
-      const status: AccountStatus = (a as Account).status || "approved";
-      return {
-        ...a,
-        role: inferRole(a.email),
-        status,
-      };
-    });
-  });
-
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const parsed = safeParseJson<AuthUser>(localStorage.getItem(storageKeys.session));
-    if (!parsed) return null;
-    return { ...parsed, role: inferRole(parsed.email) };
-  });
+  const [session, setSession] = useState<StoredSession | null>(() => parseStoredSession(localStorage.getItem(storageKeys.session)));
+  const user = session?.user ?? null;
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.accounts, JSON.stringify(accounts));
-  }, [accounts]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(storageKeys.session, JSON.stringify(user));
+    if (session) {
+      localStorage.setItem(storageKeys.session, JSON.stringify(session));
       return;
     }
     localStorage.removeItem(storageKeys.session);
-  }, [user]);
+  }, [session]);
 
-  const value = useMemo<AuthContextValue>(() => {
-    const login = (email: string): AuthAttemptResult => {
-      const now = new Date().toISOString();
-      const normalizedEmail = email.trim();
-      const role = inferRole(normalizedEmail);
+  useEffect(() => {
+    if (!session) return;
+    const expiresAtMs = new Date(session.expiresAt).getTime();
+    if (Number.isNaN(expiresAtMs)) {
+      setSession(null);
+      return;
+    }
+    const remaining = expiresAtMs - Date.now();
+    if (remaining <= 0) {
+      setSession(null);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => {
+      setSession(null);
+    }, remaining);
+    return () => window.clearTimeout(timeoutId);
+  }, [session]);
 
-      const existing = accounts.find((a) => a.email.trim().toLowerCase() === normalizedEmail.toLowerCase());
-      const nextStatus: AccountStatus = existing?.status || (role === "admin" ? "approved" : "pending");
-      const nextAccount: Account = existing
-        ? { ...existing, role, email: normalizedEmail, lastLoginAt: now, status: nextStatus }
-        : { id: createId(), email: normalizedEmail, role, createdAt: now, lastLoginAt: now, status: nextStatus };
+  const refreshAccounts = useCallback(async () => {
+    const res = await fetchAuthBackend("/users");
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(normalizeErrorMessage(text, res.status));
+    }
+    const data = (await res.json()) as Array<Partial<Account> & { id: string; email: string }>;
+    const normalizedAccounts = data.map(normalizeAccount);
+    setAccounts(normalizedAccounts);
+    setSession((current) => {
+      if (!current) return current;
+      const matched = normalizedAccounts.find((account) => account.id === current.user.id);
+      if (!matched || matched.status !== "approved") return null;
+      return {
+        ...current,
+        user: normalizeAuthUser(matched),
+      };
+    });
+  }, []);
 
-      setAccounts((prev) => {
-        const prevExisting = prev.find((a) => a.id === nextAccount.id);
-        if (prevExisting) {
-          return prev.map((a) => (a.id === nextAccount.id ? nextAccount : a));
-        }
-        return [nextAccount, ...prev];
+  useEffect(() => {
+    let active = true;
+    void refreshAccounts()
+      .catch(() => {})
+      .finally(() => {
+        if (active) setIsReady(true);
       });
-
-      if (nextAccount.status !== "approved") {
-        setUser(null);
-        return {
-          ok: false,
-          status: nextAccount.status,
-          reason:
-            nextAccount.status === "pending"
-              ? "Conta aguardando aprovação do administrador."
-              : "Conta rejeitada. Fale com o administrador.",
-        };
-      }
-
-      const nextUser: AuthUser = { id: nextAccount.id, email: nextAccount.email, role: nextAccount.role, name: nextAccount.name };
-      setUser(nextUser);
-      return { ok: true, status: "approved", user: nextUser };
+    return () => {
+      active = false;
     };
+  }, [refreshAccounts]);
 
-    const signup = (email: string, _password: string, name?: string): AuthAttemptResult => {
-      const now = new Date().toISOString();
-      const normalizedEmail = email.trim();
-      const role = inferRole(normalizedEmail);
+  const login = useCallback(async (email: string, password: string): Promise<AuthAttemptResult> => {
+    const res = await fetchAuthBackend("/users/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
 
-      const trimmedName = name?.trim() || undefined;
-      const existing = accounts.find((a) => a.email.trim().toLowerCase() === normalizedEmail.toLowerCase());
-      const nextStatus: AccountStatus = existing?.status || (role === "admin" ? "approved" : "pending");
-      const nextAccount: Account = existing
-        ? {
-            ...existing,
-            role,
-            email: normalizedEmail,
-            name: trimmedName || existing.name,
-            lastLoginAt: now,
-            status: nextStatus,
-          }
-        : {
-            id: createId(),
-            email: normalizedEmail,
-            name: trimmedName,
-            role,
-            createdAt: now,
-            lastLoginAt: now,
-            status: nextStatus,
-          };
+    const payload = (await res.json().catch(() => null)) as
+      | { user?: Partial<Account> & { id: string; email: string }; error?: string; status?: AccountStatus }
+      | null;
 
-      setAccounts((prev) => {
-        const prevExisting = prev.find((a) => a.id === nextAccount.id);
-        if (prevExisting) {
-          return prev.map((a) => (a.id === nextAccount.id ? nextAccount : a));
-        }
-        return [nextAccount, ...prev];
-      });
+    if (!res.ok || !payload?.user) {
+      setSession(null);
+      await refreshAccounts().catch(() => {});
+      const status: "pending" | "rejected" = payload?.status === "pending" ? "pending" : "rejected";
+      return {
+        ok: false,
+        status,
+        reason: payload?.error || "Email ou senha inválidos.",
+      };
+    }
 
-      if (nextAccount.status !== "approved") {
-        setUser(null);
-        return {
-          ok: false,
-          status: nextAccount.status,
-          reason: "Cadastro realizado. Aguarde a aprovação do administrador para entrar.",
-        };
-      }
+    const nextUser = normalizeAuthUser(payload.user);
+    setSession(buildStoredSession(nextUser));
+    await refreshAccounts().catch(() => {});
+    return { ok: true, status: "approved", user: nextUser };
+  }, [refreshAccounts]);
 
-      const nextUser: AuthUser = { id: nextAccount.id, email: nextAccount.email, role: nextAccount.role, name: nextAccount.name };
-      setUser(nextUser);
-      return { ok: true, status: "approved", user: nextUser };
-    };
+  const signup = useCallback(async (email: string, password: string, name?: string): Promise<AuthAttemptResult> => {
+    const res = await fetchAuthBackend("/users/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, name }),
+    });
 
-    const logout = () => setUser(null);
+    const payload = (await res.json().catch(() => null)) as
+      | { user?: Partial<Account> & { id: string; email: string }; error?: string; message?: string }
+      | null;
 
-    const deleteAccount = (id: string) => {
-      if (user?.role === "admin" && user.id === id) return;
-      setAccounts((prev) => prev.filter((a) => a.id !== id));
-      setUser((prev) => (prev?.id === id ? null : prev));
-    };
+    if (!res.ok || !payload?.user) {
+      return {
+        ok: false,
+        status: "rejected",
+        reason: payload?.error || "Não foi possível criar a conta.",
+      };
+    }
 
-    const approveAccount = (id: string) => {
-      const now = new Date().toISOString();
-      setAccounts((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "approved", approvedAt: a.approvedAt || now, rejectedAt: undefined } : a)),
-      );
-    };
+    const account = normalizeAccount(payload.user);
+    await refreshAccounts().catch(() => {});
 
-    const rejectAccount = (id: string) => {
-      const now = new Date().toISOString();
-      setAccounts((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "rejected", rejectedAt: a.rejectedAt || now, approvedAt: undefined } : a)),
-      );
-      setUser((prev) => (prev?.id === id ? null : prev));
-    };
+    if (account.status !== "approved") {
+      setSession(null);
+      return {
+        ok: false,
+        status: account.status,
+        reason: payload?.message || "Cadastro realizado. Aguarde a aprovação do administrador para entrar.",
+      };
+    }
 
-    return {
+    const nextUser = normalizeAuthUser(account);
+    setSession(buildStoredSession(nextUser));
+    return { ok: true, status: "approved", user: nextUser };
+  }, [refreshAccounts]);
+
+  const logout = useCallback(() => setSession(null), []);
+
+  const deleteAccount = useCallback(async (id: string) => {
+    const res = await fetchAuthBackend(`/users/${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(normalizeErrorMessage(text, res.status));
+    }
+    if (user?.id === id) setSession(null);
+    await refreshAccounts();
+  }, [refreshAccounts, user?.id]);
+
+  const approveAccount = useCallback(async (id: string) => {
+    const res = await fetchAuthBackend(`/users/${encodeURIComponent(id)}/approve`, { method: "PATCH" });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(normalizeErrorMessage(text, res.status));
+    }
+    await refreshAccounts();
+  }, [refreshAccounts]);
+
+  const rejectAccount = useCallback(async (id: string) => {
+    const res = await fetchAuthBackend(`/users/${encodeURIComponent(id)}/reject`, { method: "PATCH" });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(normalizeErrorMessage(text, res.status));
+    }
+    if (user?.id === id) setSession(null);
+    await refreshAccounts();
+  }, [refreshAccounts, user?.id]);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
       user,
       accounts,
-      login: (email: string, _password: string) => login(email),
-      signup: (email: string, _password: string, name?: string) => signup(email, _password, name),
+      isReady,
+      login,
+      signup,
       logout,
       deleteAccount,
       approveAccount,
       rejectAccount,
       isAdmin: user?.role === "admin",
-    };
-  }, [accounts, user]);
+    }),
+    [accounts, approveAccount, deleteAccount, isReady, login, logout, rejectAccount, signup, user],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

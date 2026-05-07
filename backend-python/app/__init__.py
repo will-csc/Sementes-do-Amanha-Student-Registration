@@ -30,4 +30,10 @@ def create_app():
     app.register_blueprint(transport_bp)
     app.register_blueprint(documents_bp)
 
+    with app.app_context():
+        from app.startup import ensure_default_admin, ensure_schema
+
+        ensure_schema()
+        ensure_default_admin()
+
     return app

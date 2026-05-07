@@ -13,6 +13,7 @@ bp = Blueprint("documents", __name__, url_prefix="/documents")
 # Subimos níveis para garantir que encontre a pasta 'docs' na raiz do projeto
 BASE_DIR = Path(__file__).resolve().parent.parent
 DOCS_DIR = BASE_DIR / "docs" / "forms"
+TERMOS_PATH = DOCS_DIR / "termos.txt"
 
 DOCUMENTS = {
     "ficha_acolhimento": {
@@ -28,6 +29,35 @@ DOCUMENTS = {
         "filename": "termo_uso_de_imagem.docx",
     }
 }
+
+
+def _parse_terms_file():
+    if not TERMOS_PATH.exists():
+        return {}
+
+    sections = {}
+    current_key = None
+    buffer = []
+
+    with TERMOS_PATH.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.rstrip()
+            normalized = line.strip().lower()
+            if normalized.startswith("termo "):
+                if current_key:
+                    sections[current_key] = "\n".join(item for item in buffer if item.strip()).strip()
+                current_key = normalized.replace("termo ", "", 1).replace(" ", "_")
+                buffer = []
+                continue
+            buffer.append(line)
+
+    if current_key:
+        sections[current_key] = "\n".join(item for item in buffer if item.strip()).strip()
+
+    if "saida" in sections and "pessoas_autorizadas" not in sections:
+        sections["pessoas_autorizadas"] = sections["saida"]
+
+    return sections
 
 def marcar_unico(dados, campo, opcoes):
     """Transforma valores de rádio/select em 'X' para o Word."""
@@ -51,6 +81,12 @@ def completar_dados(dados):
     dados["mes"] = meses_pt[hoje.month]
     dados["ano"] = hoje.strftime("%Y")
 
+    autoriza_imagem = dados.get("autorizacaoImagem")
+    if autoriza_imagem is None:
+        autoriza_imagem = dados.get("autorizacao_imagem")
+    dados["autorizacao_imagem_autoriza"] = "X" if autoriza_imagem is True else ""
+    dados["autorizacao_imagem_nao_autoriza"] = "X" if autoriza_imagem is False else ""
+
     autorizados = dados.get("pessoas_autorizadas") or dados.get("pessoasAutorizadas") or []
     for i in range(5):
         if i < len(autorizados):
@@ -59,6 +95,11 @@ def completar_dados(dados):
         else:
             dados[f"resp_{i+1}_nome"] = ""
             dados[f"resp_{i+1}_parentesco"] = ""
+
+
+@bp.route("/termos", methods=["GET"])
+def listar_termos():
+    return jsonify(_parse_terms_file())
 
 @bp.route("/emitir_todos", methods=["POST", "OPTIONS"])
 def emitir_todos():

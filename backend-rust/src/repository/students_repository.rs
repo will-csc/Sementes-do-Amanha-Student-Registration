@@ -131,6 +131,7 @@ pub async fn get_student(pool: &PgPool, id: i64) -> Result<Option<Student>, sqlx
     struct BaseRow {
         id: i64,
         nome_completo: String,
+        foto_crianca: String,
         data_nascimento: String,
         idade: Option<i32>,
         naturalidade: String,
@@ -157,6 +158,9 @@ pub async fn get_student(pool: &PgPool, id: i64) -> Result<Option<Student>, sqlx
         contato_conjuge_telefone: String,
         tipo_domicilio: String,
         renda_familiar: String,
+        beneficio_outros: String,
+        ativo: bool,
+        unidade: String,
         escola_nome: String,
         escola_serie: String,
         escola_ano: String,
@@ -188,6 +192,7 @@ pub async fn get_student(pool: &PgPool, id: i64) -> Result<Option<Student>, sqlx
       SELECT
         id,
         nome_completo,
+        COALESCE(foto_crianca, '') AS foto_crianca,
         COALESCE(to_char(data_nascimento, 'YYYY-MM-DD'), '') AS data_nascimento,
         idade,
         COALESCE(naturalidade, '') AS naturalidade,
@@ -214,6 +219,9 @@ pub async fn get_student(pool: &PgPool, id: i64) -> Result<Option<Student>, sqlx
         COALESCE(contato_conjuge_telefone, '') AS contato_conjuge_telefone,
         COALESCE(tipo_domicilio, '') AS tipo_domicilio,
         COALESCE(renda_familiar, '') AS renda_familiar,
+        COALESCE(beneficio_outros, '') AS beneficio_outros,
+        ativo,
+        COALESCE(unidade, '') AS unidade,
         COALESCE(escola_nome, '') AS escola_nome,
         COALESCE(escola_serie, '') AS escola_serie,
         COALESCE(escola_ano, '') AS escola_ano,
@@ -406,6 +414,7 @@ pub async fn get_student(pool: &PgPool, id: i64) -> Result<Option<Student>, sqlx
 
     let data = StudentDraft {
         nome_completo: base.nome_completo,
+        foto_crianca: base.foto_crianca,
         data_nascimento: base.data_nascimento,
         idade: base.idade,
         naturalidade: base.naturalidade,
@@ -435,6 +444,9 @@ pub async fn get_student(pool: &PgPool, id: i64) -> Result<Option<Student>, sqlx
         tipo_domicilio: base.tipo_domicilio,
         renda_familiar: base.renda_familiar,
         beneficios,
+        beneficio_outros: base.beneficio_outros,
+        ativo: base.ativo,
+        unidade: base.unidade,
         escola_nome: base.escola_nome,
         escola_serie: base.escola_serie,
         escola_ano: base.escola_ano,
@@ -485,6 +497,7 @@ pub async fn create_student(
         r#"
       INSERT INTO students (
         nome_completo,
+        foto_crianca,
         data_nascimento,
         idade,
         naturalidade,
@@ -511,6 +524,9 @@ pub async fn create_student(
         contato_conjuge_telefone,
         tipo_domicilio,
         renda_familiar,
+        beneficio_outros,
+        ativo,
+        unidade,
         escola_nome,
         escola_serie,
         escola_ano,
@@ -539,8 +555,8 @@ pub async fn create_student(
         updated_by_email
       ) VALUES (
         $1,
-        CAST($2 AS date),
-        $3,
+        $2,
+        CAST($3 AS date),
         $4,
         $5,
         $6,
@@ -590,12 +606,16 @@ pub async fn create_student(
         $50,
         $51,
         $52,
-        $53
+        $53,
+        $54,
+        $55,
+        $56
       )
       RETURNING id
     "#,
     )
     .bind(&draft.nome_completo)
+    .bind(none_if_blank(&draft.foto_crianca))
     .bind(data_nascimento)
     .bind(draft.idade)
     .bind(none_if_blank(&draft.naturalidade))
@@ -622,6 +642,9 @@ pub async fn create_student(
     .bind(none_if_blank(&draft.contato_conjuge_telefone))
     .bind(none_if_blank(&draft.tipo_domicilio))
     .bind(none_if_blank(&draft.renda_familiar))
+    .bind(none_if_blank(&draft.beneficio_outros))
+    .bind(draft.ativo)
+    .bind(none_if_blank(&draft.unidade))
     .bind(none_if_blank(&draft.escola_nome))
     .bind(none_if_blank(&draft.escola_serie))
     .bind(none_if_blank(&draft.escola_ano))
@@ -801,62 +824,67 @@ pub async fn update_student(
         r#"
       UPDATE students SET
         nome_completo = $1,
-        data_nascimento = CAST($2 AS date),
-        idade = $3,
-        naturalidade = $4,
-        raca_cor = $5,
-        sexo = $6,
-        rg = $7,
-        cpf = $8,
-        nis = $9,
-        certidao_termo = $10,
-        certidao_folha = $11,
-        certidao_livro = $12,
-        endereco_cep = $13,
-        endereco_logradouro = $14,
-        endereco_numero = $15,
-        endereco_complemento = $16,
-        endereco_bairro = $17,
-        endereco_cidade = $18,
-        endereco_uf = $19,
-        nome_pai = $20,
-        nome_mae = $21,
-        cras_referencia = $22,
-        estado_civil_pais = $23,
-        contato_conjuge_nome = $24,
-        contato_conjuge_telefone = $25,
-        tipo_domicilio = $26,
-        renda_familiar = $27,
-        escola_nome = $28,
-        escola_serie = $29,
-        escola_ano = $30,
-        escola_professor = $31,
-        escola_periodo = $32,
-        historico_escolar = $33,
-        ubs_referencia = $34,
-        tem_problema_saude = $35,
-        problema_saude_descricao = $36,
-        tem_restricoes = $37,
-        restricoes_descricao = $38,
-        usa_medicamentos = $39,
-        medicamentos_descricao = $40,
-        tem_alergias = $41,
-        alergias_descricao = $42,
-        acompanhamentos = $43,
-        tem_deficiencia = $44,
-        deficiencia_descricao = $45,
-        tem_supervisao = $46,
-        supervisao_descricao = $47,
-        atividades_extras = $48,
-        termo_responsabilidade = $49,
-        autorizacao_imagem = $50,
-        autorizacao_saida = $51,
+        foto_crianca = $2,
+        data_nascimento = CAST($3 AS date),
+        idade = $4,
+        naturalidade = $5,
+        raca_cor = $6,
+        sexo = $7,
+        rg = $8,
+        cpf = $9,
+        nis = $10,
+        certidao_termo = $11,
+        certidao_folha = $12,
+        certidao_livro = $13,
+        endereco_cep = $14,
+        endereco_logradouro = $15,
+        endereco_numero = $16,
+        endereco_complemento = $17,
+        endereco_bairro = $18,
+        endereco_cidade = $19,
+        endereco_uf = $20,
+        nome_pai = $21,
+        nome_mae = $22,
+        cras_referencia = $23,
+        estado_civil_pais = $24,
+        contato_conjuge_nome = $25,
+        contato_conjuge_telefone = $26,
+        tipo_domicilio = $27,
+        renda_familiar = $28,
+        beneficio_outros = $29,
+        ativo = $30,
+        unidade = $31,
+        escola_nome = $32,
+        escola_serie = $33,
+        escola_ano = $34,
+        escola_professor = $35,
+        escola_periodo = $36,
+        historico_escolar = $37,
+        ubs_referencia = $38,
+        tem_problema_saude = $39,
+        problema_saude_descricao = $40,
+        tem_restricoes = $41,
+        restricoes_descricao = $42,
+        usa_medicamentos = $43,
+        medicamentos_descricao = $44,
+        tem_alergias = $45,
+        alergias_descricao = $46,
+        acompanhamentos = $47,
+        tem_deficiencia = $48,
+        deficiencia_descricao = $49,
+        tem_supervisao = $50,
+        supervisao_descricao = $51,
+        atividades_extras = $52,
+        termo_responsabilidade = $53,
+        autorizacao_imagem = $54,
+        autorizacao_saida = $55,
         updated_at = now(),
-        updated_by_email = $52
-      WHERE id = $53
+        updated_by_email = $56
+      WHERE id = $57
     "#,
     )
     .bind(&draft.nome_completo)
+    .bind(none_if_blank(&draft.foto_crianca))
     .bind(data_nascimento)
     .bind(draft.idade)
     .bind(none_if_blank(&draft.naturalidade))
@@ -883,6 +911,9 @@ pub async fn update_student(
     .bind(none_if_blank(&draft.contato_conjuge_telefone))
     .bind(none_if_blank(&draft.tipo_domicilio))
     .bind(none_if_blank(&draft.renda_familiar))
+    .bind(none_if_blank(&draft.beneficio_outros))
+    .bind(draft.ativo)
+    .bind(none_if_blank(&draft.unidade))
     .bind(none_if_blank(&draft.escola_nome))
     .bind(none_if_blank(&draft.escola_serie))
     .bind(none_if_blank(&draft.escola_ano))

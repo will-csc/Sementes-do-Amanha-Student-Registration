@@ -41,6 +41,7 @@ export type AutorizacaoSaida =
 export interface Student {
   id: string;
   nomeCompleto: string;
+  fotoCrianca: string;
   dataNascimento: string;
   idade: number | null;
   naturalidade: string;
@@ -70,6 +71,9 @@ export interface Student {
   tipoDomicilio: string;
   rendaFamiliar: string;
   beneficios: string[];
+  beneficioOutros: string;
+  ativo: boolean;
+  unidade: string;
   escolaNome: string;
   escolaSerie: string;
   escolaAno: string;
@@ -102,6 +106,7 @@ export interface Student {
 
 export const emptyStudent: Omit<Student, "id"> = {
   nomeCompleto: "",
+  fotoCrianca: "",
   dataNascimento: "",
   idade: null,
   naturalidade: "",
@@ -143,6 +148,9 @@ export const emptyStudent: Omit<Student, "id"> = {
   tipoDomicilio: "",
   rendaFamiliar: "",
   beneficios: [],
+  beneficioOutros: "",
+  ativo: true,
+  unidade: "",
   escolaNome: "",
   escolaSerie: "",
   escolaAno: "",

@@ -110,20 +110,25 @@ export default function Settings() {
     setConfirmDialog({ open: true, action: "reject", id, email });
   };
 
-  const confirmAction = () => {
+  const confirmAction = async () => {
     if (!confirmDialog.open) return;
     const { action, id, email } = confirmDialog;
-    if (action === "approve") {
-      approveAccount(id);
-      toast.success(`Conta aprovada: ${email}`);
-    } else if (action === "reject") {
-      rejectAccount(id);
-      toast.success(`Conta rejeitada: ${email}`);
-    } else if (action === "delete") {
-      deleteAccount(id);
-      toast.success(`Conta excluída: ${email}`);
+    try {
+      if (action === "approve") {
+        await approveAccount(id);
+        toast.success(`Conta aprovada: ${email}`);
+      } else if (action === "reject") {
+        await rejectAccount(id);
+        toast.success(`Conta rejeitada: ${email}`);
+      } else if (action === "delete") {
+        await deleteAccount(id);
+        toast.success(`Conta excluída: ${email}`);
+      }
+      setConfirmDialog({ open: false });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Falha ao atualizar a conta.";
+      toast.error(msg);
     }
-    setConfirmDialog({ open: false });
   };
 
   const confirmTitle = confirmDialog.open
@@ -267,8 +272,7 @@ export default function Settings() {
           <CardHeader>
             <CardTitle className="text-lg">Contas</CardTitle>
             <CardDescription>
-              Exibe as contas cadastradas neste navegador. Para ser admin, use um email que comece com <span className="font-medium">adm</span> ou{" "}
-              <span className="font-medium">admin</span>.
+              Exibe as contas cadastradas no backend Python, incluindo a conta administradora padrão.
             </CardDescription>
           </CardHeader>
           <CardContent>

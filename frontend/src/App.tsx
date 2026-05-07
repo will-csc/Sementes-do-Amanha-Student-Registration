@@ -14,19 +14,22 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
+  if (!isReady) return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Carregando...</div>;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
+  if (!isReady) return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Carregando...</div>;
   if (user) return <Navigate to="/students" replace />;
   return <>{children}</>;
 };
 
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isReady } = useAuth();
+  if (!isReady) return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Carregando...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/students" replace />;
   return <>{children}</>;

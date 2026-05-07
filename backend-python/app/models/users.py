@@ -9,13 +9,17 @@ class User(db.Model):
     name = db.Column(db.Text)
     email = db.Column(db.Text, nullable=False, unique=True, index=True)
     role = db.Column(db.Text, nullable=False)
+    status = db.Column(db.Text, nullable=False, server_default="pending")
     password_hash = db.Column(db.Text)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_login_at = db.Column(db.DateTime(timezone=True))
+    approved_at = db.Column(db.DateTime(timezone=True))
+    rejected_at = db.Column(db.DateTime(timezone=True))
     deleted_at = db.Column(db.DateTime(timezone=True))
 
     __table_args__ = (
         db.CheckConstraint("role in ('admin','user')", name="ck_users_role"),
+        db.CheckConstraint("status in ('pending','approved','rejected')", name="ck_users_status"),
     )
 
     def set_password(self, raw):

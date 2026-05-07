@@ -60,6 +60,7 @@ pub struct PessoaAutorizada {
 #[serde(rename_all = "camelCase")]
 pub struct StudentDraft {
     pub nome_completo: String,
+    pub foto_crianca: String,
     pub data_nascimento: String,
     pub idade: Option<i32>,
     pub naturalidade: String,
@@ -89,6 +90,10 @@ pub struct StudentDraft {
     pub tipo_domicilio: String,
     pub renda_familiar: String,
     pub beneficios: Vec<String>,
+    pub beneficio_outros: String,
+    #[serde(default = "default_true")]
+    pub ativo: bool,
+    pub unidade: String,
     pub escola_nome: String,
     pub escola_serie: String,
     pub escola_ano: String,
@@ -125,6 +130,10 @@ pub struct StudentDraft {
     pub autorizacao_imagem: bool,
     pub autorizacao_saida: String,
     pub pessoas_autorizadas: Vec<PessoaAutorizada>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize)]

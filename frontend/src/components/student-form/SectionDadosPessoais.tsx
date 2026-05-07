@@ -1,6 +1,9 @@
 import React from "react";
 import type { Student } from "@/types/student";
 import { FormField, formatCep, formatCpf, formatNis, formatRg, formatUf, onlyAsciiLettersAndDigitsUpper, onlyDigits, onlyLettersAndSpaces } from "@/components/student-form/FormField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const racaCorOptions = [
   "Branca",
@@ -26,8 +29,60 @@ export default function SectionDadosPessoais({
   onChange: (field: string, value: any) => void;
   errors?: Record<string, string | undefined>;
 }) {
+  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        onChange("fotoCrianca", reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="fotoCrianca">Foto da criança</Label>
+          <Input id="fotoCrianca" type="file" accept="image/*" onChange={handlePhotoChange} />
+          {data.fotoCrianca ? (
+            <div className="space-y-3 rounded-lg border p-3">
+              <img src={data.fotoCrianca} alt="Pré-visualização da criança" className="h-40 w-40 rounded-lg object-cover" />
+              <Button type="button" variant="outline" size="sm" onClick={() => onChange("fotoCrianca", "")}>
+                Remover foto
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Selecione uma imagem para anexar ao cadastro.</p>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-4">
+          <FormField
+            label="Status do atendido"
+            id="ativo"
+            type="select"
+            value={data.ativo ? "ativo" : "inativo"}
+            onChange={(v) => onChange("ativo", v === "ativo")}
+            options={[
+              { value: "ativo", label: "Ativo" },
+              { value: "inativo", label: "Inativo" },
+            ]}
+            error={errors?.ativo}
+          />
+          <FormField
+            label="Unidade"
+            id="unidade"
+            type="text"
+            value={data.unidade}
+            onChange={(v) => onChange("unidade", v)}
+            placeholder="Informe a unidade"
+            error={errors?.unidade}
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField
           label="Nome completo"

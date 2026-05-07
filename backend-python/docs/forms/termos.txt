@@ -1,0 +1,39 @@
+termo saida
+
+REGRAS/DIRETRIZES:
+
+•Responsáveis autorizados a retirar o(a) criança/adolescente: O Pai e a Mãe legalmente sempre são autorizados, exceto por Decisão Judicial. Neste caso, a Equipe Técnica deverá ter uma cópia da definição judicial.
+
+•Qualquer alteração ou imprevisto referente a liberação da criança/adolescente deve ser comunicada imediatamente à Equipe Técnica.
+
+•Atenção: A criança/adolescente não autorizada a sair deverá aguardar seus pais/responsáveis dentro do espaço da OSC, não sendo permitida sua saída com outras pessoas (pais de amigos, pais de alunos, parentes ou conhecidos) sem estarem devidamente autorizados antecipadamente.
+
+•Importante: As crianças/adolescentes devidamente autorizadas a deixar a OSC desacompanhados, somente serão liberados ao término de suas atividades, portanto não serão permitidas saídas para quaisquer motivos, se a intenção for retornar à Instituição
+
+termo responsabilidade
+
+1.	DA FREQUÊNCIA E DOS ATRASOS.
+A criança/adolescente e seu responsável legal se comprometem a comunicar imediatamente qualquer tipo de afastamento que impeça o seu comparecimento no Serviço de Convivência e Fortalecimento de Vínculos, cabendo avaliação técnica em casos de ultrapassar o limite de 03 (três) faltas injustificadas.
+Também fico ciente que o horário de entrada é das {{horario_entrada}} e saída às {{horario_saida}} horas.
+Os atrasos serão tolerados até o limite de 10 (dez) minutos, visando um bom desempenho das atividades propostas.
+
+2.	DA RESPONSABILIDADE DA CRIANÇA/ ADOLESCENTE.
+A criança ou adolescente deverá participar efetivamente das tarefas propostas, bem como colaborar nas tarefas de organização, após o término das atividades.
+O uso de aparelhos sonoros, de telefonia ou de imagens e redes sociais não serão permitidos. Se for indispensável trazer, devem permanecer de fato desligados ou no modo silencioso em nossas dependências.
+Não nos responsabilizamos por objetos de uso pessoal, ficando responsável cada um por sua guarda.
+
+3.	DO COMPROMETIMENTO DO RESPONSÁVEL.
+Comparecer, pontual, para participar de reuniões e palestras agendadas. Atender prontamente toda convocação de comparecimento no CRAS.
+Comunicar imediatamente, toda mudança de endereço, telefone ou de escola da criança ou adolescente, bem como de alteração de trabalho dos responsáveis.
+
+O responsável autoriza a partir de agora a criança ou adolescente à participar de todas as ATIVIDADES DO PROJETO DE APOIO À CRIANÇA, ADOLESCENTE E FAMÍLIA SEMENTES DO AMANHÃ, aceitando todas as normas e regras. E declara que AUTORIZA a veiculação de sua imagem, em jornais, revistas, internet, televisão, seminários, eventos, escolas, palestras, sempre com fins de divulgação dos trabalhos desenvolvidos nesta Instituição.
+Fico ciente através deste documento que a falsidade desta declaração configura crime previsto no Código Penal Brasileiro e, possível de apuração na forma de lei.
+LI E CONCORDO COM OS TERMOS ACIMA.
+
+termo imagem
+
+{{nome_crianca}} , nacionalidade {{nacionalidade_crianca}}, {{idade_crianca}}, menor de  idade,   neste   ato   devidamente   por   seu (sua)   responsável   legal, {{nome_responsavel}}, portador da cédula de identidade RG n°: {{rg_responsavel}}  e inscrito no CPF/MF sob nº: {{cpf_responsavel}}, residente à Av./Rua {{endereco_responsavel}}, São Paulo, AUTORIZO o uso de minha imagem em todo e qualquer material entre fotos e documentos, para serem utilizadas em campanhas promocionais e institucionais da ONG SEMENTES DO AMANHÃ, com sede à rua João Pires de Camargo, nº 207 – Jardim Mirna - Taboão da Serra/SP. Sejam essas destinadas à divulgação ao público em geral. A presente autorização é concedida a título gratuito, abrangendo o uso da imagem acima mencionada em todo o território nacional e no exterior, em toda e qualquer mídia impressa ou digital. Por esta ser a expressão da minha vontade declaro que autorizo o uso acima descrito sem que nada haja a ser reclamado a título de direitos conexos à minha imagem ou a qualquer outro, e assino a presente autorização em 02 vias de igual teor e forma.
+
+({{autorizacao_imagem_autoriza}}) AUTORIZO o uso de imagem em todo e qualquer material entre fotos e documentos.
+
+({{autorizacao_imagem_nao_autoriza}}) NÃO AUTORIZO o uso de imagem.

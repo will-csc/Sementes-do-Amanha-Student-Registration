@@ -16,15 +16,19 @@ const Signup = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email && password && name) {
-      const result = signup(email, password, name);
+      const result = await signup(email, password, name);
       if (result.ok) {
         navigate('/students');
         return;
       }
-      toast.success(result.reason);
+      if (result.status === "pending") {
+        toast.success(result.reason);
+      } else {
+        toast.error(result.reason);
+      }
       navigate('/login');
     }
   };

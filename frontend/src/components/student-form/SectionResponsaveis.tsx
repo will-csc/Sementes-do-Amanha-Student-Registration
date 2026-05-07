@@ -104,7 +104,11 @@ export default function SectionResponsaveis({
 
   const toggleBeneficio = (label: string) => {
     const has = data.beneficios.includes(label);
-    onChange("beneficios", has ? data.beneficios.filter((b) => b !== label) : [...data.beneficios, label]);
+    const next = has ? data.beneficios.filter((b) => b !== label) : [...data.beneficios, label];
+    onChange("beneficios", next);
+    if (label === "Outros" && has) {
+      onChange("beneficioOutros", "");
+    }
   };
 
   return (
@@ -340,6 +344,17 @@ export default function SectionResponsaveis({
             </label>
           ))}
         </div>
+        {data.beneficios.includes("Outros") && (
+          <FormField
+            label="Qual outro benefício?"
+            id="beneficioOutros"
+            type="text"
+            value={data.beneficioOutros}
+            onChange={(v) => onChange("beneficioOutros", v)}
+            placeholder="Descreva o benefício"
+            error={errors?.beneficioOutros}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-import os
 import re
 from datetime import datetime
+from pathlib import Path
 
 from dateutil import parser
 from flask import Blueprint, jsonify, request, send_file
@@ -25,10 +25,12 @@ from app.services.document_service import preencher_documento
 bp = Blueprint("students", __name__, url_prefix="/students")
 stats_bp = Blueprint("student_stats", __name__)
 audit_bp = Blueprint("student_audit", __name__)
+DOCS_DIR = Path(__file__).resolve().parent.parent / "docs" / "forms"
 
 
 DATE_FIELDS = {"data_nascimento"}
 BOOL_FIELDS = {
+    "ativo",
     "tem_problema_saude",
     "tem_restricoes",
     "usa_medicamentos",
@@ -50,6 +52,7 @@ RELATED_LIST_FIELDS = {
 }
 ALLOWED_FIELDS = {
     "nome_completo",
+    "foto_crianca",
     "data_nascimento",
     "idade",
     "naturalidade",
@@ -76,6 +79,9 @@ ALLOWED_FIELDS = {
     "contato_conjuge_telefone",
     "tipo_domicilio",
     "renda_familiar",
+    "beneficio_outros",
+    "ativo",
+    "unidade",
     "escola_nome",
     "escola_serie",
     "escola_ano",
@@ -251,11 +257,14 @@ def _serialize_student_summary(student):
     return {
         "id": str(student.id),
         "nomeCompleto": student.nome_completo,
+        "fotoCrianca": student.foto_crianca,
         "idade": student.idade,
         "nomeMae": student.nome_mae,
         "escolaNome": student.escola_nome,
         "sexo": student.sexo,
         "cpf": student.cpf,
+        "ativo": student.ativo,
+        "unidade": student.unidade,
     }
 
 
@@ -294,6 +303,7 @@ def _serialize_student_full(
     payload = {
         "id": str(student.id),
         "nome_completo": student.nome_completo,
+        "foto_crianca": student.foto_crianca,
         "data_nascimento": _serialize_value(student.data_nascimento),
         "idade": student.idade,
         "naturalidade": student.naturalidade,
@@ -320,6 +330,9 @@ def _serialize_student_full(
         "contato_conjuge_telefone": student.contato_conjuge_telefone,
         "tipo_domicilio": student.tipo_domicilio,
         "renda_familiar": student.renda_familiar,
+        "beneficio_outros": student.beneficio_outros,
+        "ativo": student.ativo,
+        "unidade": student.unidade,
         "escola_nome": student.escola_nome,
         "escola_serie": student.escola_serie,
         "escola_ano": student.escola_ano,
@@ -558,13 +571,7 @@ def download_contract(student_id):
     try:
         student_payload = _fetch_serialized_student(student_id)
         filename = _document_filename(student_payload.get("nomeCompleto") or "", student_payload.get("cpf") or "")
-        file_buffer = preencher_documento("termo_de_responsabilidade.docx", _document_context(student_payload))
-
-        storage_dir = os.getenv("CONTRACTS_DIR", "storage/contracts")
-        os.makedirs(storage_dir, exist_ok=True)
-        full_path = os.path.join(storage_dir, filename)
-        with open(full_path, "wb") as output_file:
-            output_file.write(file_buffer.getbuffer())
+        file_buffer = preencher_documento(str(DOCS_DIR / "termo_de_responsabilidade.docx"), _document_context(student_payload))
         file_buffer.seek(0)
 
         return send_file(

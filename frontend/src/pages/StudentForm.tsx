@@ -160,6 +160,10 @@ function validateForms(items: { tabIndex: number; data: FormData }[]): Validatio
       add(tabIndex, "autorizacaoSaida", `${alunoLabel(tabIndex)}: Autorização de saída é obrigatória.`);
     }
 
+    if (s.beneficios.includes("Outros") && s.beneficioOutros.trim() === "") {
+      add(tabIndex, "beneficioOutros", `${alunoLabel(tabIndex)}: Informe qual é o outro benefício.`);
+    }
+
     const ano = s.escolaAno.trim();
     if (ano) {
       const lower = ano.toLowerCase();
@@ -303,8 +307,8 @@ function mapToWordPayload(student: any) {
 
     composicao_familiar: student.membrosFamiliares || [], 
 
-    "alergia": student.temAlergia ? "SIM" : "NÃO", 
-    alergia_qual: student.alergiaDescricao,
+    "alergia": student.temAlergias ? "SIM" : "NÃO",
+    alergia_qual: student.alergiasDescricao,
 
     // ===== LISTAS =====
     beneficios: (student.beneficios || []).map(normalize),
@@ -415,33 +419,6 @@ const StudentForm = () => {
     setRemoveTabIndex(null);
   };
 
-  const parseFilenameFromContentDisposition = (value: string | null): string | null => {
-    if (!value) return null;
-    const match = value.match(/filename="([^"]+)"/i) || value.match(/filename=([^;]+)/i);
-    if (!match) return null;
-    return match[1].trim();
-  };
-
-  const downloadContractPdf = async (studentId: string) => {
-    const res = await fetchBackend(`/students/${encodeURIComponent(studentId)}/contract`, {
-      method: "GET",
-      headers: { accept: "application/pdf" },
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(normalizeHttpErrorText(text, res.status));
-    }
-    const filename = parseFilenameFromContentDisposition(res.headers.get("content-disposition")) || "contrato.pdf";
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank", "noopener,noreferrer");
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
-  };
-
   const downloadZip = async (student: any) => {
   const payload = mapToWordPayload(student);
 
@@ -484,7 +461,8 @@ const StudentForm = () => {
     }
     try {
       if (isEditing && id) {
-        await updateStudent(id, tabs[0]);
+        const updated = await updateStudent(id, tabs[0]);
+        await downloadZip(updated);
         toast.success('Aluno atualizado com sucesso!');
         navigate('/students');
       } else if (tabs.length > 1) {
@@ -631,7 +609,17 @@ const StudentForm = () => {
                 {isEditing ? <Save className="h-5 w-5 text-primary-foreground" /> : <UserPlus className="h-5 w-5 text-primary-foreground" />}
               </div>
               <div>
-                <CardTitle className="text-xl">{isEditing ? 'Editar Aluno' : 'Cadastrar Alunos'}</CardTitle>
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <span>{isEditing ? 'Editar Aluno' : 'Cadastrar Alunos'}</span>
+                  {isEditing && (
+                    <span className={cn(
+                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                      form.ativo ? "bg-emerald-500/10 text-emerald-700" : "bg-red-500/10 text-red-700",
+                    )}>
+                      {form.ativo ? "Ativo" : "Inativo"}
+                    </span>
+                  )}
+                </CardTitle>
                 <CardDescription>
                   {isEditing ? 'Atualize os dados do aluno' : 'Cadastre até 7 alunos de uma vez. Preencha todas as seções.'}
                 </CardDescription>

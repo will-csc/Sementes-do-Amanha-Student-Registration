@@ -118,13 +118,13 @@ const StudentList = () => {
     try {
       const res = await fetchBackend(`/students/${encodeURIComponent(studentId)}/contract`, {
         method: "GET",
-        headers: { accept: "application/pdf" },
+        headers: { accept: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         throw new Error(normalizeHttpErrorText(text, res.status));
       }
-      const filename = parseFilenameFromContentDisposition(res.headers.get("content-disposition")) || "contrato.pdf";
+      const filename = parseFilenameFromContentDisposition(res.headers.get("content-disposition")) || "contrato.docx";
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener,noreferrer");

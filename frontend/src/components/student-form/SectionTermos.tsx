@@ -2,8 +2,10 @@ import React from "react";
 import type { Student, PessoaAutorizada, AutorizacaoSaida } from "@/types/student";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { FormField, formatCpf, formatPhoneBR, onlyDigits, onlyLettersAndSpaces } from "@/components/student-form/FormField";
+import { fetchBackend } from "@/contexts/StudentContext";
 import { cn } from "@/lib/utils";
 
 const parentescoOptions = [
@@ -31,7 +33,17 @@ const parentescoOptions = [
 const saidaOptions: { value: AutorizacaoSaida; label: string }[] = [
   { value: "sim", label: "Sim" },
   { value: "nao", label: "Não" },
+  { value: "somente-com-responsavel", label: "Somente com responsável" },
 ];
+
+type TermoKey = "saida" | "responsabilidade" | "imagem" | "pessoas_autorizadas";
+
+const fallbackTermosTexto: Record<TermoKey, string> = {
+  saida: "Termo de saída indisponível no momento.",
+  responsabilidade: "Termo de responsabilidade indisponível no momento.",
+  imagem: "Termo de imagem indisponível no momento.",
+  pessoas_autorizadas: "Termo de pessoas autorizadas indisponível no momento.",
+};
 
 export default function SectionTermos({
   data,
@@ -42,6 +54,32 @@ export default function SectionTermos({
   onChange: (field: string, value: any) => void;
   errors?: Record<string, string | undefined>;
 }) {
+  const [termoAberto, setTermoAberto] = React.useState<TermoKey | null>(null);
+  const [termosTexto, setTermosTexto] = React.useState<Record<TermoKey, string>>(fallbackTermosTexto);
+
+  React.useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      try {
+        const res = await fetchBackend("/documents/termos", { headers: { accept: "application/json" } });
+        if (!res.ok) return;
+        const payload = (await res.json()) as Partial<Record<TermoKey, string>>;
+        if (!active) return;
+        setTermosTexto({
+          saida: payload.saida?.trim() || fallbackTermosTexto.saida,
+          responsabilidade: payload.responsabilidade?.trim() || fallbackTermosTexto.responsabilidade,
+          imagem: payload.imagem?.trim() || fallbackTermosTexto.imagem,
+          pessoas_autorizadas: payload.pessoas_autorizadas?.trim() || payload.saida?.trim() || fallbackTermosTexto.pessoas_autorizadas,
+        });
+      } catch {}
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const updatePessoa = (index: number, patch: Partial<PessoaAutorizada>) => {
     const next = data.pessoasAutorizadas.map((p, i) => (i === index ? { ...p, ...patch } : p));
     onChange("pessoasAutorizadas", next);
@@ -61,16 +99,40 @@ export default function SectionTermos({
     );
   };
 
+  const termoTitulo =
+    termoAberto === "saida"
+      ? "Termo de saída"
+      : termoAberto === "responsabilidade"
+        ? "Termo de responsabilidade"
+        : termoAberto === "imagem"
+          ? "Termo de imagem"
+          : termoAberto === "pessoas_autorizadas"
+            ? "Termo de pessoas autorizadas"
+          : "";
+
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold">Termos</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Termos</h3>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setTermoAberto("responsabilidade")}>
+              Ver termo de responsabilidade
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setTermoAberto("saida")}>
+              Ver termo de saída
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setTermoAberto("imagem")}>
+              Ver termo de imagem
+            </Button>
+          </div>
+        </div>
         <label className="flex items-center gap-2 rounded-md border p-2">
-          <Checkbox checked={data.termoResponsabilidade} onCheckedChange={(v) => onChange("termoResponsabilidade", v ? "sim" : "nao")} />
+          <Checkbox checked={data.termoResponsabilidade} onCheckedChange={(v) => onChange("termoResponsabilidade", v === true)} />
           <Label className="cursor-pointer">Aceito o termo de responsabilidade</Label>
         </label>
         <label className="flex items-center gap-2 rounded-md border p-2">
-          <Checkbox checked={data.autorizacaoImagem} onCheckedChange={(v) => onChange("autorizacaoImagem", v ? "sim" : "nao")} />
+          <Checkbox checked={data.autorizacaoImagem} onCheckedChange={(v) => onChange("autorizacaoImagem", v === true)} />
           <Label className="cursor-pointer">Autorizo uso de imagem</Label>
         </label>
       </div>
@@ -103,9 +165,14 @@ export default function SectionTermos({
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">Pessoas autorizadas</h3>
-          <Button type="button" variant="outline" size="sm" onClick={addPessoa}>
-            Adicionar pessoa
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setTermoAberto("pessoas_autorizadas")}>
+              Ver termo
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={addPessoa}>
+              Adicionar pessoa
+            </Button>
+          </div>
         </div>
 
         {data.pessoasAutorizadas.length === 0 ? (
@@ -166,6 +233,23 @@ export default function SectionTermos({
           </div>
         )}
       </div>
+
+      <Dialog open={termoAberto !== null} onOpenChange={(open) => !open && setTermoAberto(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{termoTitulo}</DialogTitle>
+            <DialogDescription>Leia o resumo abaixo antes de confirmar as autorizações.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto rounded-lg border bg-muted/30 p-4 text-sm leading-6 text-foreground">
+            {termoAberto ? termosTexto[termoAberto] : ""}
+          </div>
+          <DialogFooter className="mt-4">
+            <Button type="button" onClick={() => setTermoAberto(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

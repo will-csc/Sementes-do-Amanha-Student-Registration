@@ -28,7 +28,7 @@ interface StudentContextValue {
 
 const StudentContext = createContext<StudentContextValue | null>(null);
 
-const DEFAULT_LOCAL_API_BASE_URL = "http://localhost:3000";
+const DEFAULT_LOCAL_API_BASE_URL = "http://localhost:10000";
 const API_BASE_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_LOCAL_API_BASE_URL;
 
 function normalizeBaseUrl(value: string) {
@@ -89,6 +89,153 @@ type ApiStudentAuditEvent = {
   byEmail: string;
   changedFields?: string[] | null;
 };
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function readField(source: Record<string, unknown>, camel: string, snake?: string) {
+  if (camel in source) return source[camel];
+  if (snake && snake in source) return source[snake];
+  return undefined;
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function asNullableNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asBoolean(value: unknown, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "sim", "yes"].includes(normalized)) return true;
+    if (["false", "0", "nao", "não", "no"].includes(normalized)) return false;
+  }
+  return fallback;
+}
+
+function asStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
+function normalizeResponsavel(value: unknown): Student["responsaveisLegais"][number] {
+  const item = asRecord(value);
+  return {
+    nome: asString(readField(item, "nome")),
+    dataNascimento: asString(readField(item, "dataNascimento", "data_nascimento")),
+    rg: asString(readField(item, "rg")),
+    cpf: asString(readField(item, "cpf")),
+    celular: asString(readField(item, "celular")),
+    operadora: asString(readField(item, "operadora")),
+    whatsapp: asString(readField(item, "whatsapp")),
+    fixo: asString(readField(item, "fixo")),
+    parentesco: asString(readField(item, "parentesco")) as Student["responsaveisLegais"][number]["parentesco"],
+  };
+}
+
+function normalizeMembroFamiliar(value: unknown): Student["membrosFamiliares"][number] {
+  const item = asRecord(value);
+  return {
+    nome: asString(readField(item, "nome")),
+    parentesco: asString(readField(item, "parentesco")) as Student["membrosFamiliares"][number]["parentesco"],
+    profissao: asString(readField(item, "profissao")),
+    renda: asString(readField(item, "renda")),
+  };
+}
+
+function normalizePessoaAutorizada(value: unknown): Student["pessoasAutorizadas"][number] {
+  const item = asRecord(value);
+  return {
+    nome: asString(readField(item, "nome")),
+    documento: asString(readField(item, "documento")),
+    parentesco: asString(readField(item, "parentesco")) as Student["pessoasAutorizadas"][number]["parentesco"],
+    telefone: asString(readField(item, "telefone")),
+  };
+}
+
+function normalizeStudentPayload(raw: unknown): Student {
+  const root = asRecord(raw);
+  const data = asRecord(root.data);
+  const source = Object.keys(data).length > 0 ? data : root;
+
+  return {
+    ...emptyStudent,
+    id: String(readField(root, "id") ?? readField(source, "id") ?? ""),
+    nomeCompleto: asString(readField(source, "nomeCompleto", "nome_completo")),
+    fotoCrianca: asString(readField(source, "fotoCrianca", "foto_crianca")),
+    dataNascimento: asString(readField(source, "dataNascimento", "data_nascimento")),
+    idade: asNullableNumber(readField(source, "idade")),
+    naturalidade: asString(readField(source, "naturalidade")),
+    racaCor: asString(readField(source, "racaCor", "raca_cor")) as Student["racaCor"],
+    sexo: normalizeSexo(asString(readField(source, "sexo"))),
+    rg: asString(readField(source, "rg")),
+    cpf: asString(readField(source, "cpf")),
+    nis: asString(readField(source, "nis")),
+    certidaoTermo: asString(readField(source, "certidaoTermo", "certidao_termo")),
+    certidaoFolha: asString(readField(source, "certidaoFolha", "certidao_folha")),
+    certidaoLivro: asString(readField(source, "certidaoLivro", "certidao_livro")),
+    enderecoCep: asString(readField(source, "enderecoCep", "endereco_cep")),
+    enderecoLogradouro: asString(readField(source, "enderecoLogradouro", "endereco_logradouro")),
+    enderecoNumero: asString(readField(source, "enderecoNumero", "endereco_numero")),
+    enderecoComplemento: asString(readField(source, "enderecoComplemento", "endereco_complemento")),
+    enderecoBairro: asString(readField(source, "enderecoBairro", "endereco_bairro")),
+    enderecoCidade: asString(readField(source, "enderecoCidade", "endereco_cidade")),
+    enderecoUf: asString(readField(source, "enderecoUf", "endereco_uf")) as Student["enderecoUf"],
+    nomePai: asString(readField(source, "nomePai", "nome_pai")),
+    nomeMae: asString(readField(source, "nomeMae", "nome_mae")),
+    crasReferencia: asString(readField(source, "crasReferencia", "cras_referencia")),
+    responsaveisLegais: Array.isArray(readField(source, "responsaveisLegais", "responsaveis_legais"))
+      ? (readField(source, "responsaveisLegais", "responsaveis_legais") as unknown[]).map(normalizeResponsavel)
+      : emptyStudent.responsaveisLegais,
+    membrosFamiliares: Array.isArray(readField(source, "membrosFamiliares", "membros_familiares"))
+      ? (readField(source, "membrosFamiliares", "membros_familiares") as unknown[]).map(normalizeMembroFamiliar)
+      : [],
+    estadoCivilPais: asString(readField(source, "estadoCivilPais", "estado_civil_pais")) as Student["estadoCivilPais"],
+    contatoConjugeNome: asString(readField(source, "contatoConjugeNome", "contato_conjuge_nome")),
+    contatoConjugeTelefone: asString(readField(source, "contatoConjugeTelefone", "contato_conjuge_telefone")),
+    tipoDomicilio: asString(readField(source, "tipoDomicilio", "tipo_domicilio")),
+    rendaFamiliar: asString(readField(source, "rendaFamiliar", "renda_familiar")),
+    beneficios: asStringArray(readField(source, "beneficios")),
+    beneficioOutros: asString(readField(source, "beneficioOutros", "beneficio_outros")),
+    ativo: asBoolean(readField(source, "ativo"), true),
+    unidade: asString(readField(source, "unidade")),
+    escolaNome: asString(readField(source, "escolaNome", "escola_nome")),
+    escolaSerie: asString(readField(source, "escolaSerie", "escola_serie")),
+    escolaAno: asString(readField(source, "escolaAno", "escola_ano")),
+    escolaProfessor: asString(readField(source, "escolaProfessor", "escola_professor")),
+    escolaPeriodo: asString(readField(source, "escolaPeriodo", "escola_periodo")),
+    historicoEscolar: asString(readField(source, "historicoEscolar", "historico_escolar")),
+    ubsReferencia: asString(readField(source, "ubsReferencia", "ubs_referencia")),
+    temProblemaSaude: asBoolean(readField(source, "temProblemaSaude", "tem_problema_saude")),
+    problemaSaudeDescricao: asString(readField(source, "problemaSaudeDescricao", "problema_saude_descricao")),
+    temRestricoes: asBoolean(readField(source, "temRestricoes", "tem_restricoes")),
+    restricoesDescricao: asString(readField(source, "restricoesDescricao", "restricoes_descricao")),
+    usaMedicamentos: asBoolean(readField(source, "usaMedicamentos", "usa_medicamentos")),
+    medicamentosDescricao: asString(readField(source, "medicamentosDescricao", "medicamentos_descricao")),
+    temAlergias: asBoolean(readField(source, "temAlergias", "tem_alergias")),
+    alergiasDescricao: asString(readField(source, "alergiasDescricao", "alergias_descricao")),
+    acompanhamentos: asString(readField(source, "acompanhamentos")),
+    temDeficiencia: asBoolean(readField(source, "temDeficiencia", "tem_deficiencia")),
+    deficienciaDescricao: asString(readField(source, "deficienciaDescricao", "deficiencia_descricao")),
+    temSupervisao: asBoolean(readField(source, "temSupervisao", "tem_supervisao")),
+    supervisaoDescricao: asString(readField(source, "supervisaoDescricao", "supervisao_descricao")),
+    interacaoSocial: asStringArray(readField(source, "interacaoSocial", "interacao_social")),
+    locaisLazer: asStringArray(readField(source, "locaisLazer", "locais_lazer")),
+    atividadesExtras: asString(readField(source, "atividadesExtras", "atividades_extras")),
+    servicosUtilizados: asStringArray(readField(source, "servicosUtilizados", "servicos_utilizados")),
+    termoResponsabilidade: asBoolean(readField(source, "termoResponsabilidade", "termo_responsabilidade")),
+    autorizacaoImagem: asBoolean(readField(source, "autorizacaoImagem", "autorizacao_imagem")),
+    autorizacaoSaida: asString(readField(source, "autorizacaoSaida", "autorizacao_saida")) as Student["autorizacaoSaida"],
+    pessoasAutorizadas: Array.isArray(readField(source, "pessoasAutorizadas", "pessoas_autorizadas"))
+      ? (readField(source, "pessoasAutorizadas", "pessoas_autorizadas") as unknown[]).map(normalizePessoaAutorizada)
+      : [],
+  };
+}
 
 function normalizeSexo(value: string): Student["sexo"] {
   const v = value.trim();
@@ -160,14 +307,15 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
   }, [loadAuditEvents, loadStudents, user]);
 
   const getStudent = useCallback(async (id: string) => {
-    const student = await apiRequest<Student>(`/students/${encodeURIComponent(id)}`);
-    return student || null;
+    const student = await apiRequest<unknown>(`/students/${encodeURIComponent(id)}`);
+    return student ? normalizeStudentPayload(student) : null;
   }, []);
 
   const addStudent = useCallback(
     async (data: StudentDraft) => {
       if (!actorEmail) throw new Error("Usuário não autenticado.");
-      const created = await apiRequest<Student>("/students", { method: "POST", body: JSON.stringify(data) }, actorEmail);
+      const createdRaw = await apiRequest<unknown>("/students", { method: "POST", body: JSON.stringify(data) }, actorEmail);
+      const created = normalizeStudentPayload(createdRaw);
       setStudents((prev) => [created, ...prev.map((s) => (s.id === created.id ? created : s))]);
       await loadAuditEvents();
       return created;
@@ -178,7 +326,8 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
   const updateStudent = useCallback(
     async (id: string, data: StudentDraft) => {
       if (!actorEmail) throw new Error("Usuário não autenticado.");
-      const updated = await apiRequest<Student>(`/students/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(data) }, actorEmail);
+      const updatedRaw = await apiRequest<unknown>(`/students/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(data) }, actorEmail);
+      const updated = normalizeStudentPayload(updatedRaw);
       setStudents((prev) => prev.map((s) => (s.id === id ? updated : s)));
       await loadAuditEvents();
       return updated;

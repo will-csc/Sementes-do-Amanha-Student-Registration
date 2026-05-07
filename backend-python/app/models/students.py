@@ -8,6 +8,7 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     nome_completo = db.Column(db.Text, nullable=False, index=True)
+    foto_crianca = db.Column(db.Text)
     data_nascimento = db.Column(db.Date)
     idade = db.Column(db.Integer)
     naturalidade = db.Column(db.Text)
@@ -39,6 +40,9 @@ class Student(db.Model):
 
     tipo_domicilio = db.Column(db.Text)
     renda_familiar = db.Column(db.Text)
+    beneficio_outros = db.Column(db.Text)
+    ativo = db.Column(db.Boolean, nullable=False, server_default="true")
+    unidade = db.Column(db.Text)
 
     escola_nome = db.Column(db.Text, index=True)
     escola_serie = db.Column(db.Text)
