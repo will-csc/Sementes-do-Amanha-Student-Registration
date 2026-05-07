@@ -11,7 +11,7 @@ bp = Blueprint("documents", __name__, url_prefix="/documents")
 
 # Localização dos templates .docx
 # Subimos níveis para garantir que encontre a pasta 'docs' na raiz do projeto
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 DOCS_DIR = BASE_DIR / "docs" / "forms"
 
 DOCUMENTS = {
