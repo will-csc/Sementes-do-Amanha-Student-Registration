@@ -41,9 +41,15 @@ function friendlyDownloadError(status: number) {
 
 function parseFilenameFromContentDisposition(value: string | null): string | null {
   if (!value) return null;
+  const utf8Match = value.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim());
+    } catch {}
+  }
   const match = value.match(/filename="([^"]+)"/i) || value.match(/filename=([^;]+)/i);
   if (!match) return null;
-  return match[1].trim();
+  return match[1].trim().replace(/^["']|["']$/g, "");
 }
 
 const StudentList = () => {
@@ -131,11 +137,12 @@ const StudentList = () => {
       const filename = parseFilenameFromContentDisposition(res.headers.get("content-disposition")) || "contrato.docx";
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank", "noopener,noreferrer");
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } finally {
       setDownloadingId((prev) => (prev === studentId ? null : prev));

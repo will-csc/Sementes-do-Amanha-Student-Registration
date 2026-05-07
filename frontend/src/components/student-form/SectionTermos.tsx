@@ -3,6 +3,7 @@ import type { Student, PessoaAutorizada, AutorizacaoSaida } from "@/types/studen
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FormField, formatCpf, formatPhoneBR, onlyDigits, onlyLettersAndSpaces } from "@/components/student-form/FormField";
 import { fetchBackend } from "@/contexts/StudentContext";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,37 @@ const fallbackTermosTexto: Record<TermoKey, string> = {
   pessoas_autorizadas: "Termo de pessoas autorizadas indisponível no momento.",
 };
 
+const BLANK_VALUE = "__________";
+
+function withFallback(value: string | undefined | null) {
+  const trimmed = (value ?? "").trim();
+  return trimmed || BLANK_VALUE;
+}
+
+function normalizeAge(value: Student["idade"]) {
+  return value == null ? BLANK_VALUE : String(value);
+}
+
+function buildTermoImagem(text: string, data: Omit<Student, "id">) {
+  const responsavel = data.responsaveisLegais[0];
+  const replacements: Record<string, string> = {
+    nome_crianca: withFallback(data.nomeCompleto),
+    nacionalidade_crianca: withFallback(data.naturalidade),
+    idade_crianca: normalizeAge(data.idade),
+    nome_responsavel: withFallback(responsavel?.nome),
+    rg_responsavel: withFallback(responsavel?.rg),
+    cpf_responsavel: withFallback(formatCpf(responsavel?.cpf ?? "")),
+    endereco_responsavel: withFallback([
+      data.enderecoLogradouro,
+      data.enderecoNumero,
+      data.enderecoComplemento,
+      data.enderecoBairro,
+    ].filter(Boolean).join(", ")),
+  };
+
+  return text.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_, key: string) => replacements[key] ?? BLANK_VALUE);
+}
+
 export default function SectionTermos({
   data,
   onChange,
@@ -54,6 +86,7 @@ export default function SectionTermos({
   errors?: Record<string, string | undefined>;
 }) {
   const [termosTexto, setTermosTexto] = React.useState<Record<TermoKey, string>>(fallbackTermosTexto);
+  const [termoAberto, setTermoAberto] = React.useState<Exclude<TermoKey, "pessoas_autorizadas"> | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -97,24 +130,43 @@ export default function SectionTermos({
     );
   };
 
+  const termosModal = {
+    responsabilidade: termosTexto.responsabilidade,
+    saida: termosTexto.saida,
+    imagem: buildTermoImagem(termosTexto.imagem, data),
+  } satisfies Record<Exclude<TermoKey, "pessoas_autorizadas">, string>;
+
+  const termoTitulos: Record<Exclude<TermoKey, "pessoas_autorizadas">, string> = {
+    responsabilidade: "Termo de responsabilidade",
+    saida: "Termo de saída",
+    imagem: "Termo de imagem",
+  };
+
   return (
     <div className="space-y-8">
       <div className="space-y-3">
         <h3 className="text-sm font-semibold">Termos</h3>
-        <div className="space-y-4">
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <h4 className="mb-2 text-sm font-medium">Termo de responsabilidade</h4>
-            <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">{termosTexto.responsabilidade}</div>
-          </div>
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <h4 className="mb-2 text-sm font-medium">Termo de saída</h4>
-            <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">{termosTexto.saida}</div>
-          </div>
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <h4 className="mb-2 text-sm font-medium">Termo de imagem</h4>
-            <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">{termosTexto.imagem}</div>
-          </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Button type="button" variant="outline" className="justify-start" onClick={() => setTermoAberto("responsabilidade")}>
+            Termo de responsabilidade
+          </Button>
+          <Button type="button" variant="outline" className="justify-start" onClick={() => setTermoAberto("saida")}>
+            Termo de saída
+          </Button>
+          <Button type="button" variant="outline" className="justify-start" onClick={() => setTermoAberto("imagem")}>
+            Termo de imagem
+          </Button>
         </div>
+        <Dialog open={termoAberto !== null} onOpenChange={(open) => setTermoAberto(open ? termoAberto : null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{termoAberto ? termoTitulos[termoAberto] : "Termo"}</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[70vh] overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-foreground">
+              {termoAberto ? termosModal[termoAberto] : ""}
+            </div>
+          </DialogContent>
+        </Dialog>
         <label className="flex items-center gap-2 rounded-md border p-2">
           <Checkbox checked={data.termoResponsabilidade} onCheckedChange={(v) => onChange("termoResponsabilidade", v === true)} />
           <Label className="cursor-pointer">Aceito o termo de responsabilidade</Label>

@@ -72,6 +72,7 @@ export async function fetchBackend(path: string, init?: RequestInit, actorEmail?
 
 type ApiStudentListItem = {
   id: string;
+  createdAt?: string | null;
   nomeCompleto: string;
   idade: number | null;
   cpf?: string | null;
@@ -166,6 +167,7 @@ function normalizeStudentPayload(raw: unknown): Student {
   return {
     ...emptyStudent,
     id: String(readField(root, "id") ?? readField(source, "id") ?? ""),
+    createdAt: asString(readField(source, "createdAt", "created_at")),
     nomeCompleto: asString(readField(source, "nomeCompleto", "nome_completo")),
     fotoCrianca: asString(readField(source, "fotoCrianca", "foto_crianca")),
     dataNascimento: asString(readField(source, "dataNascimento", "data_nascimento")),
@@ -271,6 +273,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       list.map((s) => ({
         ...emptyStudent,
         id: s.id,
+        createdAt: s.createdAt ?? "",
         nomeCompleto: s.nomeCompleto,
         idade: s.idade ?? null,
         cpf: s.cpf ?? "",

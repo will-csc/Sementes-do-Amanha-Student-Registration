@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint, jsonify, request, send_file
 from pathlib import Path
 from app.services.document_service import preencher_documento, mapear_student_para_word
@@ -64,10 +65,11 @@ def _parse_terms_file():
         for raw_line in handle:
             line = raw_line.rstrip()
             normalized = line.strip().lower()
-            if normalized.startswith("termo "):
+            match = re.fullmatch(r"-+\s*termo\s+(.+?)\s*-+", normalized) or re.fullmatch(r"termo\s+(.+)", normalized)
+            if match:
                 if current_key:
                     sections[current_key] = "\n".join(item for item in buffer if item.strip()).strip()
-                current_key = normalized.replace("termo ", "", 1).replace(" ", "_")
+                current_key = match.group(1).strip().replace(" ", "_")
                 buffer = []
                 continue
             buffer.append(line)

@@ -33,7 +33,3 @@ LI E CONCORDO COM OS TERMOS ACIMA.
 ------------- termo imagem -------------
 
 {{nome_crianca}} , nacionalidade {{nacionalidade_crianca}}, {{idade_crianca}}, menor de  idade,   neste   ato   devidamente   por   seu (sua)   responsável   legal, {{nome_responsavel}}, portador da cédula de identidade RG n°: {{rg_responsavel}}  e inscrito no CPF/MF sob nº: {{cpf_responsavel}}, residente à Av./Rua {{endereco_responsavel}}, São Paulo, AUTORIZO o uso de minha imagem em todo e qualquer material entre fotos e documentos, para serem utilizadas em campanhas promocionais e institucionais da ONG SEMENTES DO AMANHÃ, com sede à rua João Pires de Camargo, nº 207 – Jardim Mirna - Taboão da Serra/SP. Sejam essas destinadas à divulgação ao público em geral. A presente autorização é concedida a título gratuito, abrangendo o uso da imagem acima mencionada em todo o território nacional e no exterior, em toda e qualquer mídia impressa ou digital. Por esta ser a expressão da minha vontade declaro que autorizo o uso acima descrito sem que nada haja a ser reclamado a título de direitos conexos à minha imagem ou a qualquer outro, e assino a presente autorização em 02 vias de igual teor e forma.
-
-({{autorizacao_imagem_autoriza}}) AUTORIZO o uso de imagem em todo e qualquer material entre fotos e documentos.
-
-({{autorizacao_imagem_nao_autoriza}}) NÃO AUTORIZO o uso de imagem.

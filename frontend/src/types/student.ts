@@ -40,6 +40,7 @@ export type AutorizacaoSaida =
 
 export interface Student {
   id: string;
+  createdAt: string;
   nomeCompleto: string;
   fotoCrianca: string;
   dataNascimento: string;
@@ -105,6 +106,7 @@ export interface Student {
 }
 
 export const emptyStudent: Omit<Student, "id"> = {
+  createdAt: "",
   nomeCompleto: "",
   fotoCrianca: "",
   dataNascimento: "",

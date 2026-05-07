@@ -273,6 +273,7 @@ def _serialize_value(value):
 def _serialize_student_summary(student):
     return {
         "id": str(student.id),
+        "createdAt": _serialize_value(student.created_at),
         "nomeCompleto": student.nome_completo,
         "fotoCrianca": student.foto_crianca,
         "idade": student.idade,
@@ -456,12 +457,19 @@ def _changed_fields(before, after):
     return sorted(key for key in after.keys() if key not in ignored and before.get(key) != after.get(key))
 
 
-def _document_filename(student_name, student_cpf):
+def _document_filename(student_name, student_cpf, created_at=None):
     date_part = datetime.now().strftime("%Y-%m-%d")
-    first_name = (student_name or "Aluno").strip().split()[0]
-    safe_first_name = re.sub(r'[<>:"/\\|?*]+', "", first_name).strip() or "Aluno"
-    safe_cpf = re.sub(r"[^\d]+", "", student_cpf or "")
-    return f"{date_part} {safe_first_name} - {safe_cpf or 'sem-cpf'}.docx"
+    if created_at:
+        try:
+            parsed_date = parser.isoparse(str(created_at))
+            date_part = parsed_date.strftime("%Y-%m-%d")
+        except (TypeError, ValueError, OverflowError):
+            pass
+
+    safe_name = re.sub(r'[<>:"/\\|?*]+', "", student_name or "").strip()
+    safe_name = re.sub(r"\s+", " ", safe_name) or "Aluno"
+    safe_cpf = re.sub(r"[^\d]+", "", student_cpf or "") or "sem-cpf"
+    return f"{date_part} - {safe_name} - {safe_cpf}.docx"
 
 
 def _document_context(student_payload):
@@ -598,7 +606,11 @@ def delete_student(student_id):
 def download_contract(student_id):
     try:
         student_payload = _fetch_serialized_student(student_id)
-        filename = _document_filename(student_payload.get("nomeCompleto") or "", student_payload.get("cpf") or "")
+        filename = _document_filename(
+            student_payload.get("nomeCompleto") or "",
+            student_payload.get("cpf") or "",
+            student_payload.get("createdAt") or student_payload.get("created_at"),
+        )
         file_buffer = preencher_documento(
             str(_template_path("termo_de_responsabilidade.docx")),
             _document_context(student_payload),
