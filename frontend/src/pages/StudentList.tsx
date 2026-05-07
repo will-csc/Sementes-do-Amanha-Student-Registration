@@ -34,6 +34,11 @@ function normalizeHttpErrorText(text: string, status: number) {
   return msg || `Erro HTTP ${status}`;
 }
 
+function friendlyDownloadError(status: number) {
+  if (status === 404) return "Documento indisponivel no momento.";
+  return "Nao foi possivel baixar o documento agora. Tente novamente em instantes.";
+}
+
 function parseFilenameFromContentDisposition(value: string | null): string | null {
   if (!value) return null;
   const match = value.match(/filename="([^"]+)"/i) || value.match(/filename=([^;]+)/i);
@@ -121,8 +126,7 @@ const StudentList = () => {
         headers: { accept: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
       });
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(normalizeHttpErrorText(text, res.status));
+        throw new Error(friendlyDownloadError(res.status));
       }
       const filename = parseFilenameFromContentDisposition(res.headers.get("content-disposition")) || "contrato.docx";
       const blob = await res.blob();

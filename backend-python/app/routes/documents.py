@@ -4,6 +4,7 @@ from app.services.document_service import preencher_documento, mapear_student_pa
 from zipfile import ZipFile
 from datetime import datetime
 from io import BytesIO
+import traceback
 
 bp = Blueprint("documents", __name__, url_prefix="/documents")
 
@@ -45,6 +46,10 @@ def _template_path(filename):
     if not caminho_template.exists():
         raise FileNotFoundError(f"Template não encontrado em '{caminho_template}'")
     return caminho_template
+
+
+def _document_error_response(user_message):
+    return jsonify({"error": user_message}), 500
 
 
 def _parse_terms_file():
@@ -150,11 +155,10 @@ def emitir_todos():
             mimetype="application/zip"
         )
 
-    except Exception as e:
-        import traceback
+    except Exception:
         print("--- ERRO NO BACKEND ---")
-        traceback.print_exc() # Isso vai mostrar a linha exata e o arquivo Word culpado
-        return jsonify({"error": str(e)}), 500
+        traceback.print_exc()
+        return _document_error_response("Nao foi possivel gerar os documentos agora. Tente novamente em instantes.")
 
 @bp.route("/<slug>", methods=["POST", "OPTIONS"])
 def emitir_word(slug):
@@ -190,7 +194,8 @@ def emitir_word(slug):
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
-    except Exception as e:
-        print(f"Erro ao gerar documento: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        print("--- ERRO AO GERAR DOCUMENTO ---")
+        traceback.print_exc()
+        return _document_error_response("Nao foi possivel gerar o documento agora. Tente novamente em instantes.")
 

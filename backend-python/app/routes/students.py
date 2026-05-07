@@ -1,4 +1,5 @@
 import re
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -470,6 +471,10 @@ def _document_context(student_payload):
     return context
 
 
+def _document_error_response(user_message):
+    return jsonify({"error": user_message}), 500
+
+
 @bp.route("", methods=["POST"])
 def create_student():
     data = _get_request_payload()
@@ -580,8 +585,10 @@ def download_contract(student_id):
             download_name=filename,
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
-    except Exception as exc:
-        return jsonify({"error": f"erro ao gerar contrato: {exc}"}), 500
+    except Exception:
+        print("--- ERRO AO GERAR CONTRATO ---")
+        traceback.print_exc()
+        return _document_error_response("Nao foi possivel gerar o contrato agora. Tente novamente em instantes.")
 
 
 @audit_bp.route("/student-audit-events", methods=["GET"])
