@@ -1,6 +1,6 @@
 import re
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from dateutil import parser
@@ -26,7 +26,23 @@ from app.services.document_service import preencher_documento
 bp = Blueprint("students", __name__, url_prefix="/students")
 stats_bp = Blueprint("student_stats", __name__)
 audit_bp = Blueprint("student_audit", __name__)
-DOCS_DIR = Path(__file__).resolve().parent.parent / "docs" / "forms"
+
+
+def _resolve_docs_dir():
+    project_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        project_root / "docs" / "forms",
+        project_root / "app" / "docs" / "forms",
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return candidates[0]
+
+
+DOCS_DIR = _resolve_docs_dir()
 
 
 DATE_FIELDS = {"data_nascimento"}
@@ -471,6 +487,13 @@ def _document_context(student_payload):
     return context
 
 
+def _template_path(filename):
+    caminho_template = DOCS_DIR / filename
+    if not caminho_template.exists():
+        raise FileNotFoundError(f"Template não encontrado em '{caminho_template}'")
+    return caminho_template
+
+
 def _document_error_response(user_message):
     return jsonify({"error": user_message}), 500
 
@@ -576,7 +599,10 @@ def download_contract(student_id):
     try:
         student_payload = _fetch_serialized_student(student_id)
         filename = _document_filename(student_payload.get("nomeCompleto") or "", student_payload.get("cpf") or "")
-        file_buffer = preencher_documento(str(DOCS_DIR / "termo_de_responsabilidade.docx"), _document_context(student_payload))
+        file_buffer = preencher_documento(
+            str(_template_path("termo_de_responsabilidade.docx")),
+            _document_context(student_payload),
+        )
         file_buffer.seek(0)
 
         return send_file(
@@ -614,10 +640,17 @@ def list_audit_events():
 
 @stats_bp.route("/stats/students", methods=["GET"])
 def get_students_stats():
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1)
+
     # 1. Total de alunos
     total_students = db.session.query(func.count(Student.id)).scalar() or 0
     
-    # 2. Total de escolas (usando trim para compatibilidade com SQLite)
+    # 2. Total de escolas
     schools = (
         db.session.query(func.count(func.distinct(Student.escola_nome)))
         .filter(Student.escola_nome.isnot(None))
@@ -626,10 +659,11 @@ def get_students_stats():
         or 0
     )
     
-    # 3. Alunos deste mês (Corrigido para SQLite)
+    # 3. Alunos deste mês, compatível com SQLite e PostgreSQL
     this_month = (
         db.session.query(func.count(Student.id))
-        .filter(func.strftime('%Y-%m', Student.created_at) == func.strftime('%Y-%m', 'now'))
+        .filter(Student.created_at >= month_start)
+        .filter(Student.created_at < next_month_start)
         .scalar()
         or 0
     )
