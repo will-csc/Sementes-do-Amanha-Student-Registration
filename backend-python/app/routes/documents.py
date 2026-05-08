@@ -235,7 +235,6 @@ def emitir_todos():
         dados = {**dados_front, **dados_word}
         
         marcar_unico(dados, "autorizacao_saida", ["sim", "nao", "somente-com-responsavel"])
-        marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
         aplicar_campos_marcacao(dados)
         completar_dados(dados)
 
@@ -280,7 +279,6 @@ def emitir_word(slug):
         dados = {**dados_front, **dados_word}
         
         marcar_unico(dados, "autorizacao_saida", ["sim", "nao", "somente-com-responsavel"])
-        marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
         aplicar_campos_marcacao(dados)
         completar_dados(dados)
 
@@ -299,4 +297,5 @@ def emitir_word(slug):
         print("--- ERRO AO GERAR DOCUMENTO ---")
         traceback.print_exc()
         return _document_error_response("Nao foi possivel gerar o documento agora. Tente novamente em instantes.")
+    
 

@@ -386,6 +386,30 @@ function mapToWordPayload(student: any) {
     // ===== INTERAÇÃO =====
     interage: "sempre",
     interage_com: [],
+
+    // ===== TERMO DE IMAGEM =====
+
+    nome_crianca: student.nomeCompleto,
+    nacionalidade_crianca: student.naturalidade || "Brasileira",
+    idade_crianca: student.idade,
+
+    nome_responsavel: student.responsaveisLegais?.[0]?.nome || student.nomeMae || "",
+    rg_responsavel: student.responsaveisLegais?.[0]?.rg || "",
+    cpf_responsavel: student.responsaveisLegais?.[0]?.cpf || "",
+
+    endereco_responsavel: [
+      student.enderecoLogradouro,
+      student.enderecoNumero,
+      student.enderecoBairro
+    ]
+    .filter(Boolean)
+    .join(", "),
+
+    autorizacaoImagem: student.autorizacaoImagem,
+    autorizacao_saida: student.autorizacaoSaida,
+
+    autorizacao_imagem_autoriza: student.autorizacaoImagem ? "X" : "",
+    autorizacao_imagem_nao_autoriza: !student.autorizacaoImagem ? "X" : "",
   };
 }
 
