@@ -281,6 +281,8 @@ function mapToWordPayload(student: any) {
     serie: student.escolaSerie,
     periodo_escolar: student.escolaPeriodo,
 
+    matriculado: student.escolaNome ? "sim" : "nao",
+
     // ===== SAÚDE =====
     ubs_referencia: student.ubsReferencia,
     problema_saude: simNao(student.temProblemaSaude),
@@ -299,6 +301,56 @@ function mapToWordPayload(student: any) {
     origem: "outros",
     vai: "acompanhado",
 
+    // ===== ORIGEM =====
+    origem_demanda: "",
+    origem_conselho: "",
+    origem_pais: "",
+    origem_internet: "",
+    origem_cras: "",
+    origem_outros: "X",
+
+    // ===== COMO VEM =====
+    vai_sozinho: "",
+    vai_acompanhado: "X",
+
+    // ===== RESPONSÁVEIS =====
+    responsavel_1_nome: student.responsaveisLegais?.[0]?.nome || "",
+    responsavel_1_rg: student.responsaveisLegais?.[0]?.rg || "",
+    responsavel_1_cpf: student.responsaveisLegais?.[0]?.cpf || "",
+    responsavel_1_celular: student.responsaveisLegais?.[0]?.telefone || "",
+    responsavel_1_parentesco: student.responsaveisLegais?.[0]?.parentesco || "",
+
+    responsavel_2_nome: student.responsaveisLegais?.[1]?.nome || "",
+    responsavel_2_rg: student.responsaveisLegais?.[1]?.rg || "",
+    responsavel_2_cpf: student.responsaveisLegais?.[1]?.cpf || "",
+    responsavel_2_celular: student.responsaveisLegais?.[1]?.telefone || "",
+    responsavel_2_parentesco: student.responsaveisLegais?.[1]?.parentesco || "",
+
+    // ===== COMPOSIÇÃO FAMILIAR =====
+    familiar_1: student.membrosFamiliares?.[0]?.nome || "",
+    parentesco_1: student.membrosFamiliares?.[0]?.parentesco || "",
+    profissao_1: student.membrosFamiliares?.[0]?.profissao || "",
+    renda_1: student.membrosFamiliares?.[0]?.renda || "",
+
+    familiar_2: student.membrosFamiliares?.[1]?.nome || "",
+    parentesco_2: student.membrosFamiliares?.[1]?.parentesco || "",
+    profissao_2: student.membrosFamiliares?.[1]?.profissao || "",
+    renda_2: student.membrosFamiliares?.[1]?.renda || "",
+
+    // continue até familiar_6...
+
+    // ===== INTERAÇÃO =====
+    interage_familia: "X",
+    interage_amigos: "",
+    interage_parentes: "",
+
+    // ===== ATENDIMENTO =====
+    atendimento_ubs: "X",
+    atendimento_caps: "",
+    atendimento_hospital: "",
+    atendimento_ser: "",
+    atendimento_outros: "",
+
     // ===== BOOLEANOS =====
     fica_sozinho: simNao(!student.temSupervisao),
     outras_atividades: simNao(!!student.atividadesExtras),
@@ -308,12 +360,15 @@ function mapToWordPayload(student: any) {
     livro: student.certidaoLivro || "",
 
     ano_escolar: student.escolaAno,
+    parou_escola: student.historicoEscolar ? "sim" : "nao",
     nome_professor: student.escolaProfessor,
 
     composicao_familiar: student.membrosFamiliares || [], 
 
     "alergia": student.temAlergias ? "SIM" : "NÃO",
     alergia_qual: student.alergiasDescricao,
+
+    contato_conjuge: student.contatoConjugeNome ? "sim" : "nao",
 
     // ===== LISTAS =====
     beneficios: (student.beneficios || []).map(normalize),
@@ -329,7 +384,7 @@ function mapToWordPayload(student: any) {
       : [],
 
     // ===== INTERAÇÃO =====
-    interage_frequencia: "sempre",
+    interage: "sempre",
     interage_com: [],
   };
 }

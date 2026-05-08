@@ -88,6 +88,103 @@ def marcar_unico(dados, campo, opcoes):
     for opcao in opcoes:
         dados[f"{campo}_{opcao}"] = "X" if valor == opcao else ""
 
+def aplicar_campos_marcacao(dados):
+    marcar_unico(dados, "problema_saude", ["sim", "nao"])
+    marcar_unico(dados, "restricao_alimentar", ["sim", "nao"])
+    marcar_unico(dados, "restricao_fisica", ["sim", "nao"])
+    marcar_unico(dados, "bronquite", ["sim", "nao"])
+    marcar_unico(dados, "falta_ar", ["sim", "nao"])
+    marcar_unico(dados, "odontologico", ["sim", "nao"])
+    marcar_unico(dados, "deficiencia", ["sim", "nao"])
+    marcar_unico(dados, "oftalmologico", ["sim", "nao"])
+    marcar_unico(dados, "usa_oculos", ["sim", "nao"])
+    marcar_unico(dados, "fica_sozinho", ["sim", "nao"])
+    marcar_unico(dados, "outras_atividades", ["sim", "nao"])
+    marcar_unico(dados, "situacao_prioritaria", ["sim", "nao"])
+    marcar_unico(dados, "matriculado", ["sim", "nao"])
+    marcar_unico(dados, "parou_escola", ["sim", "nao"])
+    marcar_unico(dados, "contato_conjuge", ["sim", "nao"])
+
+    marcar_unico(dados, "interage", ["nunca", "raramente", "sempre"])
+
+    marcar_unico(dados, "estado_civil", [
+        "casado",
+        "uniao",
+        "separado",
+        "divorciado",
+        "viuvo",
+        "outro"
+    ])
+
+    marcar_unico(dados, "tipo_domicilio", [
+        "proprio",
+        "alugado",
+        "cedido",
+        "outros"
+    ])
+
+    beneficios = dados.get("beneficios", [])
+
+    dados["beneficios_bolsa_familia"] = "X" if "bolsa_familia" in beneficios else ""
+    dados["beneficios_renda_cidada"] = "X" if "renda_cidada" in beneficios else ""
+    dados["beneficios_bpc"] = "X" if "bpc" in beneficios else ""
+    dados["beneficios_eventuais"] = "X" if "eventuais" in beneficios else ""
+
+    dados["recebe_beneficio_sim"] = "X" if beneficios else ""
+    dados["recebe_beneficio_nao"] = "" if beneficios else "X"
+
+    servicos = dados.get("servicos", [])
+
+    campos_servicos = [
+        "cras",
+        "creas",
+        "creas_medidas",
+        "forum",
+        "conselho",
+        "fundacao",
+        "centro_dia",
+        "saica",
+        "ilpi",
+        "centro_pop",
+        "seas",
+        "delegacia",
+        "delegacia_mulher",
+        "centro_mulher",
+        "pronto_socorro",
+        "caps",
+        "sistema_prisional",
+        "egresso",
+    ]
+
+    for servico in campos_servicos:
+        dados[f"servico_{servico}"] = "X" if servico in servicos else ""
+
+    onde = dados.get("onde", [])
+
+    campos_onde = [
+        "casa",
+        "parentes",
+        "rua",
+        "pracas",
+        "redes",
+        "telefone",
+        "festas",
+        "religioso",
+        "passeios",
+        "outros",
+    ]
+
+    for item in campos_onde:
+        dados[f"onde_{item}"] = "X" if item in onde else ""
+
+    atividades = dados.get("atividade", [])
+
+    dados["atividade_esportes"] = "X" if "esportes" in atividades else ""
+    dados["atividade_cultura"] = "X" if "cultura" in atividades else ""
+    dados["atividade_nucleo"] = "X" if "nucleo" in atividades else ""
+    dados["atividade_ong"] = "X" if "ong" in atividades else ""
+    dados["atividade_outros"] = "X" if "outros" in atividades else ""
+
 def completar_dados(dados):
     """Garante que campos derivados e datas estejam preenchidos."""
     dados["nome_crianca"] = dados.get("nome_completo") or dados.get("nomeCompleto", "")
@@ -139,6 +236,7 @@ def emitir_todos():
         
         marcar_unico(dados, "autorizacao_saida", ["sim", "nao", "somente-com-responsavel"])
         marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
+        aplicar_campos_marcacao(dados)
         completar_dados(dados)
 
         memory_file = BytesIO()
@@ -183,6 +281,7 @@ def emitir_word(slug):
         
         marcar_unico(dados, "autorizacao_saida", ["sim", "nao", "somente-com-responsavel"])
         marcar_unico(dados, "autorizacao_imagem", ["autoriza", "nao_autoriza"])
+        aplicar_campos_marcacao(dados)
         completar_dados(dados)
 
         caminho_template = _template_path(meta["filename"])
