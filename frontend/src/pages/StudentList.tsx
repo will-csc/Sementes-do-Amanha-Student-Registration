@@ -124,30 +124,44 @@ const StudentList = () => {
     }
   };
 
-  const downloadContractPdf = async (studentId: string) => {
-    setDownloadingId(studentId);
-    try {
-      const res = await fetchBackend(`/students/${encodeURIComponent(studentId)}/contract`, {
-        method: "GET",
-        headers: { accept: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
-      });
-      if (!res.ok) {
-        throw new Error(friendlyDownloadError(res.status));
-      }
-      const filename = parseFilenameFromContentDisposition(res.headers.get("content-disposition")) || "contrato.docx";
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    } finally {
-      setDownloadingId((prev) => (prev === studentId ? null : prev));
+const downloadContractPdf = async (student: any) => {
+  setDownloadingId(student.id);
+
+  try {
+    const res = await fetchBackend(`/documents/emitir_todos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        accept: "application/zip",
+      },
+      body: JSON.stringify({
+        ...student,
+
+        autorizacaoImagem: student.autorizacaoImagem,
+        autorizacao_saida: student.autorizacaoSaida,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(friendlyDownloadError(res.status));
     }
-  };
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Documentos_${student.nomeCompleto || "Aluno"}.zip`;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } finally {
+    setDownloadingId((prev) => (prev === student.id ? null : prev));
+  }
+};
 
   const cards = [
     { label: 'Total de Alunos', value: stats.totalStudents, icon: Users, color: 'bg-primary/10 text-primary' },
@@ -271,7 +285,7 @@ const StudentList = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => downloadContractPdf(student.id).catch((e) => toastError(e, "Falha ao baixar contrato."))}
+                              onClick={() => downloadContractPdf(student).catch((e) => toastError(e, "Falha ao baixar contrato."))}
                               title="Baixar contrato"
                               disabled={downloadingId === student.id}
                             >
