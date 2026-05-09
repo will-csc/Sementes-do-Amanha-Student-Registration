@@ -27,6 +27,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/health", get(handlers::health::health))
         .route("/login", post(handlers::auth::login))
         .route("/documents", get(handlers::documents::list_documents))
+        .route("/documents/termos", get(handlers::documents::list_terms))
         .route(
             "/documents/:slug/emit",
             post(handlers::documents::emit_document),

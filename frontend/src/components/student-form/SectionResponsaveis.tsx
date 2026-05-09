@@ -40,8 +40,31 @@ const beneficiosOptions = [
   "BPC",
   "Auxílio Gás",
   "Tarifa Social",
+  "Renda Cidadã",
+  "Benefícios Eventuais",
   "Outros",
 ];
+
+const tipoDomicilioOptions = [
+  "Próprio",
+  "Alugado",
+  "Cedido",
+].map((v) => ({ value: v, label: v }));
+
+const faixaRendaOptions = [
+  { value: "0-1 salário", label: "0-1 salário" },
+  { value: "2-3 salários", label: "2-3 salários" },
+  { value: "acima de 3", label: "Acima de 3" },
+];
+
+const frequenciaContatoOptions = [
+  "Diária",
+  "Semanal",
+  "Quinzenal",
+  "Mensal",
+  "Esporádica",
+  "Não possui contato",
+].map((v) => ({ value: v, label: v }));
 
 export default function SectionResponsaveis({
   data,
@@ -274,8 +297,9 @@ export default function SectionResponsaveis({
                     label="Renda"
                     id={`membro-${idx}-renda`}
                     type="text"
-                    value={m.renda}
-                    onChange={(v) => updateMembro(idx, { renda: v })}
+                    value={formatBRL(m.renda)}
+                    onChange={(v) => updateMembro(idx, { renda: formatBRL(v) })}
+                    inputMode="numeric"
                     error={errors?.[`membro-${idx}-renda`]}
                   />
                 </div>
@@ -299,9 +323,11 @@ export default function SectionResponsaveis({
         <FormField
           label="Tipo de domicílio"
           id="tipoDomicilio"
-          type="text"
+          type="select"
           value={data.tipoDomicilio}
           onChange={(v) => onChange("tipoDomicilio", v)}
+          placeholder="Selecione"
+          options={tipoDomicilioOptions}
           error={errors?.tipoDomicilio}
         />
         <FormField
@@ -323,12 +349,32 @@ export default function SectionResponsaveis({
           error={errors?.contatoConjugeTelefone}
         />
         <FormField
+          label="Frequência de contato"
+          id="contatoConjugeFrequencia"
+          type="select"
+          value={data.contatoConjugeFrequencia}
+          onChange={(v) => onChange("contatoConjugeFrequencia", v)}
+          placeholder="Selecione"
+          options={frequenciaContatoOptions}
+          error={errors?.contatoConjugeFrequencia}
+        />
+        <FormField
           label="Renda familiar"
           id="rendaFamiliar"
           type="text"
           value={formatBRL(data.rendaFamiliar)}
           onChange={(v) => onChange("rendaFamiliar", formatBRL(v))}
           inputMode="numeric"
+          error={errors?.rendaFamiliar}
+        />
+        <FormField
+          label="Faixa de renda"
+          id="faixaRenda"
+          type="select"
+          value={data.faixaRenda}
+          onChange={(v) => onChange("faixaRenda", v)}
+          placeholder="Selecione"
+          options={faixaRendaOptions}
           className="sm:col-span-2"
           error={errors?.rendaFamiliar}
         />

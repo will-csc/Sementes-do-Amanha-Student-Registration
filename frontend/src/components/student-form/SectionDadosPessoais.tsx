@@ -85,6 +85,49 @@ export default function SectionDadosPessoais({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField
+          label="Locomoção"
+          id="locomocao"
+          type="select"
+          value={data.locomocao}
+          onChange={(v) => onChange("locomocao", v)}
+          placeholder="Selecione"
+          options={[
+            { value: "sozinho", label: "Sozinho" },
+            { value: "acompanhado", label: "Acompanhado" },
+          ]}
+          error={errors?.locomocao}
+        />
+        <FormField
+          label="Acompanhado por quem"
+          id="locomocaoAcompanhante"
+          type="text"
+          value={data.locomocaoAcompanhante}
+          onChange={(v) => onChange("locomocaoAcompanhante", onlyLettersAndSpaces(v))}
+          placeholder="Informe quem acompanha"
+          error={errors?.locomocaoAcompanhante}
+        />
+        <FormField
+          label="Origem/Encaminhamento"
+          id="origemEncaminhamento"
+          type="select"
+          value={data.origemEncaminhamento}
+          onChange={(v) => onChange("origemEncaminhamento", v)}
+          placeholder="Selecione"
+          options={[
+            { value: "Demanda Espontânea", label: "Demanda Espontânea" },
+            { value: "Conselho Tutelar", label: "Conselho Tutelar" },
+            { value: "Indicação de Pais", label: "Indicação de Pais" },
+            { value: "Internet/TV", label: "Internet/TV" },
+            { value: "CRAS/CREAS", label: "CRAS/CREAS" },
+            { value: "Outros", label: "Outros" },
+          ]}
+          className="sm:col-span-2"
+          error={errors?.origemEncaminhamento}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <FormField
           label="Nome completo"
           id="nomeCompleto"
           type="text"

@@ -68,6 +68,10 @@ pub async fn list_documents() -> Json<Vec<DocumentListItem>> {
     )
 }
 
+pub async fn list_terms() -> Json<BTreeMap<String, String>> {
+    Json(parse_terms_file())
+}
+
 pub async fn emit_document(
     Path(slug): Path<String>,
     Json(payload): Json<Value>,
@@ -109,6 +113,98 @@ fn load_template_bytes(filename: &str) -> Option<Vec<u8>> {
         .into_iter()
         .map(|dir| dir.join(filename))
         .find_map(|path| std::fs::read(path).ok())
+}
+
+fn parse_terms_file() -> BTreeMap<String, String> {
+    let Some(path) = resolve_terms_path() else {
+        return BTreeMap::new();
+    };
+
+    let Ok(contents) = std::fs::read_to_string(path) else {
+        return BTreeMap::new();
+    };
+
+    let mut sections = BTreeMap::new();
+    let mut current_key: Option<String> = None;
+    let mut buffer: Vec<String> = Vec::new();
+
+    for raw_line in contents.lines() {
+        let line = raw_line.trim_end();
+        if let Some(next_key) = parse_terms_header(line) {
+            flush_terms_section(&mut sections, &current_key, &buffer);
+            current_key = Some(next_key);
+            buffer.clear();
+            continue;
+        }
+
+        buffer.push(line.to_string());
+    }
+
+    flush_terms_section(&mut sections, &current_key, &buffer);
+
+    if let Some(saida) = sections.get("saida").cloned() {
+        sections
+            .entry("pessoas_autorizadas".to_string())
+            .or_insert(saida);
+    }
+
+    sections
+}
+
+fn resolve_terms_path() -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Ok(path) = std::env::var("TERMOS_FILE") {
+        let trimmed = path.trim();
+        if !trimmed.is_empty() {
+            candidates.push(PathBuf::from(trimmed));
+        }
+    }
+
+    if let Ok(dir) = std::env::var("DOCS_DIR") {
+        let trimmed = dir.trim();
+        if !trimmed.is_empty() {
+            let base = PathBuf::from(trimmed);
+            candidates.push(base.join("termos.txt"));
+            candidates.push(base.join("forms").join("termos.txt"));
+        }
+    }
+
+    candidates.push(PathBuf::from("docs").join("forms").join("termos.txt"));
+    candidates.push(PathBuf::from("backend-python").join("docs").join("forms").join("termos.txt"));
+    candidates.push(PathBuf::from("..").join("backend-python").join("docs").join("forms").join("termos.txt"));
+    candidates.push(
+        PathBuf::from("..")
+            .join("..")
+            .join("backend-python")
+            .join("docs")
+            .join("forms")
+            .join("termos.txt"),
+    );
+
+    candidates.into_iter().find(|path| path.exists())
+}
+
+fn parse_terms_header(line: &str) -> Option<String> {
+    let normalized = line.trim().to_lowercase();
+    let trimmed = normalized.trim_matches('-').trim();
+    let key = trimmed.strip_prefix("termo ")?;
+    Some(key.trim().replace(' ', "_"))
+}
+
+fn flush_terms_section(
+    sections: &mut BTreeMap<String, String>,
+    current_key: &Option<String>,
+    buffer: &[String],
+) {
+    let Some(key) = current_key else {
+        return;
+    };
+
+    let text = buffer.join("\n").trim().to_string();
+    if !text.is_empty() {
+        sections.insert(key.clone(), text);
+    }
 }
 
 fn template_dirs() -> Vec<PathBuf> {

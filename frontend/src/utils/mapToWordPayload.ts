@@ -12,6 +12,10 @@ function simNao(value?: boolean) {
 }
 
 export function mapToWordPayload(student: any) {
+  const origem = student.origemEncaminhamento || "";
+  const locomocao = student.locomocao || "";
+  const locaisAtendimento = student.locaisAtendimento || [];
+
   return {
     nomeCompleto: student.nomeCompleto,
     dataNascimento: student.dataNascimento,
@@ -54,29 +58,29 @@ export function mapToWordPayload(student: any) {
     tipo_domicilio: normalize(student.tipoDomicilio),
     estado_civil: normalize(student.estadoCivilPais),
 
-    origem: "outros",
-    vai: "acompanhado",
+    origem: normalize(origem) || "outros",
+    vai: locomocao || "acompanhado",
 
-    origem_demanda: "",
-    origem_conselho: "",
-    origem_pais: "",
-    origem_internet: "",
-    origem_cras: "",
-    origem_outros: "X",
+    origem_demanda: origem === "Demanda Espontânea" ? "X" : "",
+    origem_conselho: origem === "Conselho Tutelar" ? "X" : "",
+    origem_pais: origem === "Indicação de Pais" ? "X" : "",
+    origem_internet: origem === "Internet/TV" ? "X" : "",
+    origem_cras: origem === "CRAS/CREAS" ? "X" : "",
+    origem_outros: origem === "Outros" || !origem ? "X" : "",
 
-    vai_sozinho: "",
-    vai_acompanhado: "X",
+    vai_sozinho: locomocao === "sozinho" ? "X" : "",
+    vai_acompanhado: locomocao === "acompanhado" || !locomocao ? "X" : "",
 
     responsavel_1_nome: student.responsaveisLegais?.[0]?.nome || "",
     responsavel_1_rg: student.responsaveisLegais?.[0]?.rg || "",
     responsavel_1_cpf: student.responsaveisLegais?.[0]?.cpf || "",
-    responsavel_1_celular: student.responsaveisLegais?.[0]?.telefone || "",
+    responsavel_1_celular: student.responsaveisLegais?.[0]?.celular || "",
     responsavel_1_parentesco: student.responsaveisLegais?.[0]?.parentesco || "",
 
     responsavel_2_nome: student.responsaveisLegais?.[1]?.nome || "",
     responsavel_2_rg: student.responsaveisLegais?.[1]?.rg || "",
     responsavel_2_cpf: student.responsaveisLegais?.[1]?.cpf || "",
-    responsavel_2_celular: student.responsaveisLegais?.[1]?.telefone || "",
+    responsavel_2_celular: student.responsaveisLegais?.[1]?.celular || "",
     responsavel_2_parentesco: student.responsaveisLegais?.[1]?.parentesco || "",
 
     familiar_1: student.membrosFamiliares?.[0]?.nome || "",
@@ -85,11 +89,17 @@ export function mapToWordPayload(student: any) {
     renda_1: student.membrosFamiliares?.[0]?.renda || "",
 
     interage_familia: "X",
+    interage_amigos: "",
+    interage_parentes: "",
 
-    atendimento_ubs: "X",
+    atendimento_ubs: student.ubsReferencia ? "X" : "",
+    atendimento_caps: locaisAtendimento.includes("CAPS") ? "X" : "",
+    atendimento_hospital: locaisAtendimento.includes("Hospital Geral") ? "X" : "",
+    atendimento_ser: locaisAtendimento.includes("SER") ? "X" : "",
+    atendimento_outros: "",
 
-    fica_sozinho: simNao(!student.temSupervisao),
-    outras_atividades: simNao(!!student.atividadesExtras),
+    fica_sozinho: simNao(!!student.permaneceSozinhaEmCasa),
+    outras_atividades: simNao((student.atividadesExtrasLista || []).length > 0 || !!student.atividadesExtras),
 
     certidao: student.certidaoTermo || "",
     folha: student.certidaoFolha || "",
@@ -110,15 +120,13 @@ export function mapToWordPayload(student: any) {
 
     servicos: (student.servicosUtilizados || []).map(normalize),
 
-    atendimentos: [],
+    atendimentos: (student.locaisAtendimento || []).map(normalize),
 
     onde: (student.locaisLazer || []).map(normalize),
 
-    atividade: student.atividadesExtras
-      ? ["outros"]
-      : [],
+    atividade: (student.atividadesExtrasLista || []).map(normalize),
 
-    interage: "sempre",
+    interage: normalize(student.frequenciaInteracao) || "sempre",
     interage_com: [],
 
     nome_crianca: student.nomeCompleto,

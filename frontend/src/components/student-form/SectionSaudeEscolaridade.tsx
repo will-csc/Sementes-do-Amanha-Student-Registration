@@ -1,6 +1,7 @@
 import React from "react";
 import type { Student } from "@/types/student";
 import { FormField, onlyDigits, onlyLettersAndSpaces } from "@/components/student-form/FormField";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup } from "@/components/ui/radio-group";
 
@@ -59,6 +60,12 @@ export default function SectionSaudeEscolaridade({
       .replace(/\s+/g, " ")
       .trimStart()
       .slice(0, 30);
+
+  const toggleLocalAtendimento = (value: string) => {
+    const current = data.locaisAtendimento;
+    const has = current.includes(value);
+    onChange("locaisAtendimento", has ? current.filter((item) => item !== value) : [...current, value]);
+  };
 
   return (
     <div className="space-y-8">
@@ -123,6 +130,31 @@ export default function SectionSaudeEscolaridade({
         />
       </div>
 
+      <div className="space-y-4">
+        <BinaryRadio label="Já houve evasão escolar?" value={data.evasaoEscolar} onChange={(v) => onChange("evasaoEscolar", v)} />
+        {data.evasaoEscolar && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              label="Motivo da evasão"
+              id="evasaoEscolarMotivo"
+              type="textarea"
+              value={data.evasaoEscolarMotivo}
+              onChange={(v) => onChange("evasaoEscolarMotivo", v)}
+              error={errors?.evasaoEscolarMotivo}
+            />
+            <FormField
+              label="Tempo afastado"
+              id="evasaoEscolarTempo"
+              type="text"
+              value={data.evasaoEscolarTempo}
+              onChange={(v) => onChange("evasaoEscolarTempo", v)}
+              placeholder="Ex: 6 meses"
+              error={errors?.evasaoEscolarTempo}
+            />
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField
           label="UBS referência"
@@ -141,6 +173,18 @@ export default function SectionSaudeEscolaridade({
           placeholder="Psicólogo, fono, CAPS, etc."
           error={errors?.acompanhamentos}
         />
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Locais de atendimento</h3>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {["CAPS", "Hospital Geral", "SER"].map((item) => (
+            <label key={item} className="flex items-center gap-2 rounded-md border p-2">
+              <Checkbox checked={data.locaisAtendimento.includes(item)} onCheckedChange={() => toggleLocalAtendimento(item)} />
+              <Label className="cursor-pointer">{item}</Label>
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -201,6 +245,92 @@ export default function SectionSaudeEscolaridade({
             value={data.deficienciaDescricao}
             onChange={(v) => onChange("deficienciaDescricao", v)}
             error={errors?.deficienciaDescricao}
+          />
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold">Saúde respiratória</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <BinaryRadio label="Bronquite" value={data.temBronquite} onChange={(v) => onChange("temBronquite", v)} />
+          <BinaryRadio label="Falta de ar" value={data.temFaltaAr} onChange={(v) => onChange("temFaltaAr", v)} />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold">Saúde bucal</h3>
+        <BinaryRadio
+          label="Faz acompanhamento odontológico?"
+          value={data.acompanhamentoOdontologico}
+          onChange={(v) => onChange("acompanhamentoOdontologico", v)}
+        />
+        {data.acompanhamentoOdontologico && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              label="Onde faz acompanhamento"
+              id="acompanhamentoOdontologicoLocal"
+              type="text"
+              value={data.acompanhamentoOdontologicoLocal}
+              onChange={(v) => onChange("acompanhamentoOdontologicoLocal", v)}
+              error={errors?.acompanhamentoOdontologicoLocal}
+            />
+            <FormField
+              label="Há quanto tempo"
+              id="acompanhamentoOdontologicoTempo"
+              type="text"
+              value={data.acompanhamentoOdontologicoTempo}
+              onChange={(v) => onChange("acompanhamentoOdontologicoTempo", v)}
+              placeholder="Ex: 1 ano"
+              error={errors?.acompanhamentoOdontologicoTempo}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold">Saúde ocular</h3>
+        <BinaryRadio
+          label="Faz tratamento oftalmológico?"
+          value={data.tratamentoOftalmologico}
+          onChange={(v) => onChange("tratamentoOftalmologico", v)}
+        />
+        {data.tratamentoOftalmologico && (
+          <FormField
+            label="Onde faz tratamento"
+            id="tratamentoOftalmologicoLocal"
+            type="text"
+            value={data.tratamentoOftalmologicoLocal}
+            onChange={(v) => onChange("tratamentoOftalmologicoLocal", v)}
+            error={errors?.tratamentoOftalmologicoLocal}
+          />
+        )}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 rounded-md border p-2">
+            <Checkbox checked={data.usaOculos} onCheckedChange={(v) => onChange("usaOculos", v === true)} />
+            <Label className="cursor-pointer">Usa óculos</Label>
+          </label>
+          <label className="flex items-center gap-2 rounded-md border p-2">
+            <Checkbox checked={data.usaLentes} onCheckedChange={(v) => onChange("usaLentes", v === true)} />
+            <Label className="cursor-pointer">Usa lentes</Label>
+          </label>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold">Restrição física</h3>
+        <BinaryRadio
+          label="Possui restrição para esportes/atividades físicas?"
+          value={data.restricaoFisica}
+          onChange={(v) => onChange("restricaoFisica", v)}
+        />
+        {data.restricaoFisica && (
+          <FormField
+            label="Qual restrição"
+            id="restricaoFisicaDescricao"
+            type="textarea"
+            value={data.restricaoFisicaDescricao}
+            onChange={(v) => onChange("restricaoFisicaDescricao", v)}
+            error={errors?.restricaoFisicaDescricao}
           />
         )}
       </div>

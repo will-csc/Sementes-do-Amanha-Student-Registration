@@ -64,8 +64,9 @@ function createId() {
 const storageKeys = {
   session: "sda.session",
 } as const;
-const DEFAULT_LOCAL_API_BASE_URL = "http://localhost:10000";
-const API_BASE_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_LOCAL_API_BASE_URL;
+const DEFAULT_LOCAL_API_BASE_URLS = ["http://localhost:3000", "http://localhost:10000"] as const;
+const API_BASE_URL = import.meta.env.VITE_API_URL as string | undefined;
+const API_BASE_URL_FALLBACK = import.meta.env.VITE_API_URL_FALLBACK as string | undefined;
 const SESSION_DURATION_MS = 60 * 60 * 1000;
 
 function safeParseJson<T>(value: string | null): T | null {
@@ -79,6 +80,24 @@ function safeParseJson<T>(value: string | null): T | null {
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
+}
+
+function buildApiBaseCandidates(...values: Array<string | undefined>) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value))
+        .map(normalizeBaseUrl),
+    ),
+  );
+}
+
+const API_BASE_CANDIDATES = buildApiBaseCandidates(API_BASE_URL, API_BASE_URL_FALLBACK, ...DEFAULT_LOCAL_API_BASE_URLS);
+
+function shouldRetryWithNextBase(method: string, response: Response) {
+  if (method !== "GET") return false;
+  return [404, 502, 503, 504].includes(response.status);
 }
 
 function normalizeErrorMessage(value: string, status: number) {
@@ -96,7 +115,22 @@ async function fetchAuthBackend(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
   if (!headers.has("accept")) headers.set("accept", "application/json");
   if (init?.body && !headers.has("content-type")) headers.set("content-type", "application/json");
-  return fetch(`${normalizeBaseUrl(API_BASE_URL.trim() || DEFAULT_LOCAL_API_BASE_URL)}${path}`, { ...init, headers });
+  const method = (init?.method ?? "GET").toUpperCase();
+  let lastError: unknown = null;
+
+  for (const [index, base] of API_BASE_CANDIDATES.entries()) {
+    try {
+      const response = await fetch(`${base}${path}`, { ...init, headers });
+      const isLastCandidate = index === API_BASE_CANDIDATES.length - 1;
+      if (!isLastCandidate && shouldRetryWithNextBase(method, response)) continue;
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (index === API_BASE_CANDIDATES.length - 1) throw error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Nao foi possivel conectar ao backend.");
 }
 
 function normalizeAccount(account: Partial<Account> & { id: string; email: string }): Account {

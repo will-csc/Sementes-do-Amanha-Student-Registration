@@ -43,6 +43,9 @@ export interface Student {
   createdAt: string;
   nomeCompleto: string;
   fotoCrianca: string;
+  locomocao: string;
+  locomocaoAcompanhante: string;
+  origemEncaminhamento: string;
   dataNascimento: string;
   idade: number | null;
   naturalidade: string;
@@ -69,8 +72,10 @@ export interface Student {
   estadoCivilPais: EstadoCivil | "";
   contatoConjugeNome: string;
   contatoConjugeTelefone: string;
+  contatoConjugeFrequencia: string;
   tipoDomicilio: string;
   rendaFamiliar: string;
+  faixaRenda: string;
   beneficios: string[];
   beneficioOutros: string;
   ativo: boolean;
@@ -81,7 +86,11 @@ export interface Student {
   escolaProfessor: string;
   escolaPeriodo: string;
   historicoEscolar: string;
+  evasaoEscolar: boolean;
+  evasaoEscolarMotivo: string;
+  evasaoEscolarTempo: string;
   ubsReferencia: string;
+  locaisAtendimento: string[];
   temProblemaSaude: boolean;
   problemaSaudeDescricao: string;
   temRestricoes: boolean;
@@ -93,12 +102,29 @@ export interface Student {
   acompanhamentos: string;
   temDeficiencia: boolean;
   deficienciaDescricao: string;
+  temBronquite: boolean;
+  temFaltaAr: boolean;
+  acompanhamentoOdontologico: boolean;
+  acompanhamentoOdontologicoLocal: string;
+  acompanhamentoOdontologicoTempo: string;
+  tratamentoOftalmologico: boolean;
+  tratamentoOftalmologicoLocal: string;
+  usaOculos: boolean;
+  usaLentes: boolean;
+  restricaoFisica: boolean;
+  restricaoFisicaDescricao: string;
+  permaneceSozinhaEmCasa: boolean;
   temSupervisao: boolean;
   supervisaoDescricao: string;
+  frequenciaInteracao: string;
   interacaoSocial: string[];
   locaisLazer: string[];
   atividadesExtras: string;
+  atividadesExtrasLista: string[];
+  cronogramaAtividades: string[];
   servicosUtilizados: string[];
+  situacaoPrioritaria: boolean;
+  observacoesGerais: string;
   termoResponsabilidade: boolean;
   autorizacaoImagem: boolean;
   autorizacaoSaida: AutorizacaoSaida;
@@ -109,6 +135,9 @@ export const emptyStudent: Omit<Student, "id"> = {
   createdAt: "",
   nomeCompleto: "",
   fotoCrianca: "",
+  locomocao: "",
+  locomocaoAcompanhante: "",
+  origemEncaminhamento: "",
   dataNascimento: "",
   idade: null,
   naturalidade: "",
@@ -147,8 +176,10 @@ export const emptyStudent: Omit<Student, "id"> = {
   estadoCivilPais: "",
   contatoConjugeNome: "",
   contatoConjugeTelefone: "",
+  contatoConjugeFrequencia: "",
   tipoDomicilio: "",
   rendaFamiliar: "",
+  faixaRenda: "",
   beneficios: [],
   beneficioOutros: "",
   ativo: true,
@@ -159,7 +190,11 @@ export const emptyStudent: Omit<Student, "id"> = {
   escolaProfessor: "",
   escolaPeriodo: "",
   historicoEscolar: "",
+  evasaoEscolar: false,
+  evasaoEscolarMotivo: "",
+  evasaoEscolarTempo: "",
   ubsReferencia: "",
+  locaisAtendimento: [],
   temProblemaSaude: false,
   problemaSaudeDescricao: "",
   temRestricoes: false,
@@ -171,12 +206,29 @@ export const emptyStudent: Omit<Student, "id"> = {
   acompanhamentos: "",
   temDeficiencia: false,
   deficienciaDescricao: "",
+  temBronquite: false,
+  temFaltaAr: false,
+  acompanhamentoOdontologico: false,
+  acompanhamentoOdontologicoLocal: "",
+  acompanhamentoOdontologicoTempo: "",
+  tratamentoOftalmologico: false,
+  tratamentoOftalmologicoLocal: "",
+  usaOculos: false,
+  usaLentes: false,
+  restricaoFisica: false,
+  restricaoFisicaDescricao: "",
+  permaneceSozinhaEmCasa: false,
   temSupervisao: false,
   supervisaoDescricao: "",
+  frequenciaInteracao: "",
   interacaoSocial: [],
   locaisLazer: [],
   atividadesExtras: "",
+  atividadesExtrasLista: [],
+  cronogramaAtividades: [],
   servicosUtilizados: [],
+  situacaoPrioritaria: false,
+  observacoesGerais: "",
   termoResponsabilidade: false,
   autorizacaoImagem: false,
   autorizacaoSaida: "",

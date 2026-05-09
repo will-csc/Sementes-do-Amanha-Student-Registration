@@ -28,11 +28,30 @@ interface StudentContextValue {
 
 const StudentContext = createContext<StudentContextValue | null>(null);
 
-const DEFAULT_LOCAL_API_BASE_URL = "http://localhost:10000";
-const API_BASE_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_LOCAL_API_BASE_URL;
+const DEFAULT_LOCAL_API_BASE_URLS = ["http://localhost:3000", "http://localhost:10000"] as const;
+const API_BASE_URL = import.meta.env.VITE_API_URL as string | undefined;
+const API_BASE_URL_FALLBACK = import.meta.env.VITE_API_URL_FALLBACK as string | undefined;
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
+}
+
+function buildApiBaseCandidates(...values: Array<string | undefined>) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value))
+        .map(normalizeBaseUrl),
+    ),
+  );
+}
+
+const API_BASE_CANDIDATES = buildApiBaseCandidates(API_BASE_URL, API_BASE_URL_FALLBACK, ...DEFAULT_LOCAL_API_BASE_URLS);
+
+function shouldRetryWithNextBase(method: string, response: Response) {
+  if (method !== "GET") return false;
+  return [404, 502, 503, 504].includes(response.status);
 }
 
 function isLikelyHtml(value: string) {
@@ -66,8 +85,22 @@ export async function fetchBackend(path: string, init?: RequestInit, actorEmail?
   if (!headers.has("accept")) headers.set("accept", "application/json");
   if (init?.body && !headers.has("content-type")) headers.set("content-type", "application/json");
   if (actorEmail) headers.set("x-user-email", actorEmail);
-  const base = normalizeBaseUrl(API_BASE_URL.trim() || DEFAULT_LOCAL_API_BASE_URL);
-  return fetch(`${base}${path}`, { ...init, headers });
+  const method = (init?.method ?? "GET").toUpperCase();
+  let lastError: unknown = null;
+
+  for (const [index, base] of API_BASE_CANDIDATES.entries()) {
+    try {
+      const response = await fetch(`${base}${path}`, { ...init, headers });
+      const isLastCandidate = index === API_BASE_CANDIDATES.length - 1;
+      if (!isLastCandidate && shouldRetryWithNextBase(method, response)) continue;
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (index === API_BASE_CANDIDATES.length - 1) throw error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Nao foi possivel conectar ao backend.");
 }
 
 type ApiStudentListItem = {
@@ -170,6 +203,9 @@ function normalizeStudentPayload(raw: unknown): Student {
     createdAt: asString(readField(source, "createdAt", "created_at")),
     nomeCompleto: asString(readField(source, "nomeCompleto", "nome_completo")),
     fotoCrianca: asString(readField(source, "fotoCrianca", "foto_crianca")),
+    locomocao: asString(readField(source, "locomocao")),
+    locomocaoAcompanhante: asString(readField(source, "locomocaoAcompanhante", "locomocao_acompanhante")),
+    origemEncaminhamento: asString(readField(source, "origemEncaminhamento", "origem_encaminhamento")),
     dataNascimento: asString(readField(source, "dataNascimento", "data_nascimento")),
     idade: asNullableNumber(readField(source, "idade")),
     naturalidade: asString(readField(source, "naturalidade")),
@@ -200,8 +236,10 @@ function normalizeStudentPayload(raw: unknown): Student {
     estadoCivilPais: asString(readField(source, "estadoCivilPais", "estado_civil_pais")) as Student["estadoCivilPais"],
     contatoConjugeNome: asString(readField(source, "contatoConjugeNome", "contato_conjuge_nome")),
     contatoConjugeTelefone: asString(readField(source, "contatoConjugeTelefone", "contato_conjuge_telefone")),
+    contatoConjugeFrequencia: asString(readField(source, "contatoConjugeFrequencia", "contato_conjuge_frequencia")),
     tipoDomicilio: asString(readField(source, "tipoDomicilio", "tipo_domicilio")),
     rendaFamiliar: asString(readField(source, "rendaFamiliar", "renda_familiar")),
+    faixaRenda: asString(readField(source, "faixaRenda", "faixa_renda")),
     beneficios: asStringArray(readField(source, "beneficios")),
     beneficioOutros: asString(readField(source, "beneficioOutros", "beneficio_outros")),
     ativo: asBoolean(readField(source, "ativo"), true),
@@ -212,7 +250,11 @@ function normalizeStudentPayload(raw: unknown): Student {
     escolaProfessor: asString(readField(source, "escolaProfessor", "escola_professor")),
     escolaPeriodo: asString(readField(source, "escolaPeriodo", "escola_periodo")),
     historicoEscolar: asString(readField(source, "historicoEscolar", "historico_escolar")),
+    evasaoEscolar: asBoolean(readField(source, "evasaoEscolar", "evasao_escolar")),
+    evasaoEscolarMotivo: asString(readField(source, "evasaoEscolarMotivo", "evasao_escolar_motivo")),
+    evasaoEscolarTempo: asString(readField(source, "evasaoEscolarTempo", "evasao_escolar_tempo")),
     ubsReferencia: asString(readField(source, "ubsReferencia", "ubs_referencia")),
+    locaisAtendimento: asStringArray(readField(source, "locaisAtendimento", "locais_atendimento")),
     temProblemaSaude: asBoolean(readField(source, "temProblemaSaude", "tem_problema_saude")),
     problemaSaudeDescricao: asString(readField(source, "problemaSaudeDescricao", "problema_saude_descricao")),
     temRestricoes: asBoolean(readField(source, "temRestricoes", "tem_restricoes")),
@@ -224,12 +266,29 @@ function normalizeStudentPayload(raw: unknown): Student {
     acompanhamentos: asString(readField(source, "acompanhamentos")),
     temDeficiencia: asBoolean(readField(source, "temDeficiencia", "tem_deficiencia")),
     deficienciaDescricao: asString(readField(source, "deficienciaDescricao", "deficiencia_descricao")),
+    temBronquite: asBoolean(readField(source, "temBronquite", "tem_bronquite")),
+    temFaltaAr: asBoolean(readField(source, "temFaltaAr", "tem_falta_ar")),
+    acompanhamentoOdontologico: asBoolean(readField(source, "acompanhamentoOdontologico", "acompanhamento_odontologico")),
+    acompanhamentoOdontologicoLocal: asString(readField(source, "acompanhamentoOdontologicoLocal", "acompanhamento_odontologico_local")),
+    acompanhamentoOdontologicoTempo: asString(readField(source, "acompanhamentoOdontologicoTempo", "acompanhamento_odontologico_tempo")),
+    tratamentoOftalmologico: asBoolean(readField(source, "tratamentoOftalmologico", "tratamento_oftalmologico")),
+    tratamentoOftalmologicoLocal: asString(readField(source, "tratamentoOftalmologicoLocal", "tratamento_oftalmologico_local")),
+    usaOculos: asBoolean(readField(source, "usaOculos", "usa_oculos")),
+    usaLentes: asBoolean(readField(source, "usaLentes", "usa_lentes")),
+    restricaoFisica: asBoolean(readField(source, "restricaoFisica", "restricao_fisica")),
+    restricaoFisicaDescricao: asString(readField(source, "restricaoFisicaDescricao", "restricao_fisica_descricao")),
+    permaneceSozinhaEmCasa: asBoolean(readField(source, "permaneceSozinhaEmCasa", "permanece_sozinha_em_casa")),
     temSupervisao: asBoolean(readField(source, "temSupervisao", "tem_supervisao")),
     supervisaoDescricao: asString(readField(source, "supervisaoDescricao", "supervisao_descricao")),
+    frequenciaInteracao: asString(readField(source, "frequenciaInteracao", "frequencia_interacao")),
     interacaoSocial: asStringArray(readField(source, "interacaoSocial", "interacao_social")),
     locaisLazer: asStringArray(readField(source, "locaisLazer", "locais_lazer")),
     atividadesExtras: asString(readField(source, "atividadesExtras", "atividades_extras")),
+    atividadesExtrasLista: asStringArray(readField(source, "atividadesExtrasLista", "atividades_extras_lista")),
+    cronogramaAtividades: asStringArray(readField(source, "cronogramaAtividades", "cronograma_atividades")),
     servicosUtilizados: asStringArray(readField(source, "servicosUtilizados", "servicos_utilizados")),
+    situacaoPrioritaria: asBoolean(readField(source, "situacaoPrioritaria", "situacao_prioritaria")),
+    observacoesGerais: asString(readField(source, "observacoesGerais", "observacoes_gerais")),
     termoResponsabilidade: asBoolean(readField(source, "termoResponsabilidade", "termo_responsabilidade")),
     autorizacaoImagem: asBoolean(readField(source, "autorizacaoImagem", "autorizacao_imagem")),
     autorizacaoSaida: asString(readField(source, "autorizacaoSaida", "autorizacao_saida")) as Student["autorizacaoSaida"],

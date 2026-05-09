@@ -9,6 +9,9 @@ class Student(db.Model):
 
     nome_completo = db.Column(db.Text, nullable=False, index=True)
     foto_crianca = db.Column(db.Text)
+    locomocao = db.Column(db.Text)
+    locomocao_acompanhante = db.Column(db.Text)
+    origem_encaminhamento = db.Column(db.Text)
     data_nascimento = db.Column(db.Date)
     idade = db.Column(db.Integer)
     naturalidade = db.Column(db.Text)
@@ -37,9 +40,11 @@ class Student(db.Model):
 
     contato_conjuge_nome = db.Column(db.Text)
     contato_conjuge_telefone = db.Column(db.Text)
+    contato_conjuge_frequencia = db.Column(db.Text)
 
     tipo_domicilio = db.Column(db.Text)
     renda_familiar = db.Column(db.Text)
+    faixa_renda = db.Column(db.Text)
     beneficio_outros = db.Column(db.Text)
     ativo = db.Column(db.Boolean, nullable=False, server_default="true")
     unidade = db.Column(db.Text)
@@ -50,6 +55,9 @@ class Student(db.Model):
     escola_professor = db.Column(db.Text)
     escola_periodo = db.Column(db.Text)
     historico_escolar = db.Column(db.Text)
+    evasao_escolar = db.Column(db.Boolean, nullable=False, server_default="false")
+    evasao_escolar_motivo = db.Column(db.Text)
+    evasao_escolar_tempo = db.Column(db.Text)
 
     ubs_referencia = db.Column(db.Text)
 
@@ -69,11 +77,26 @@ class Student(db.Model):
 
     tem_deficiencia = db.Column(db.Boolean, nullable=False, server_default="false")
     deficiencia_descricao = db.Column(db.Text)
+    tem_bronquite = db.Column(db.Boolean, nullable=False, server_default="false")
+    tem_falta_ar = db.Column(db.Boolean, nullable=False, server_default="false")
+    acompanhamento_odontologico = db.Column(db.Boolean, nullable=False, server_default="false")
+    acompanhamento_odontologico_local = db.Column(db.Text)
+    acompanhamento_odontologico_tempo = db.Column(db.Text)
+    tratamento_oftalmologico = db.Column(db.Boolean, nullable=False, server_default="false")
+    tratamento_oftalmologico_local = db.Column(db.Text)
+    usa_oculos = db.Column(db.Boolean, nullable=False, server_default="false")
+    usa_lentes = db.Column(db.Boolean, nullable=False, server_default="false")
+    restricao_fisica = db.Column(db.Boolean, nullable=False, server_default="false")
+    restricao_fisica_descricao = db.Column(db.Text)
+    permanece_sozinha_em_casa = db.Column(db.Boolean, nullable=False, server_default="false")
 
     tem_supervisao = db.Column(db.Boolean, nullable=False, server_default="false")
     supervisao_descricao = db.Column(db.Text)
 
     atividades_extras = db.Column(db.Text)
+    frequencia_interacao = db.Column(db.Text)
+    situacao_prioritaria = db.Column(db.Boolean, nullable=False, server_default="false")
+    observacoes_gerais = db.Column(db.Text)
 
     termo_responsabilidade = db.Column(db.Boolean, nullable=False, server_default="false")
     autorizacao_imagem = db.Column(db.Boolean, nullable=False, server_default="false")
@@ -161,6 +184,27 @@ class StudentLocalLazer(db.Model):
 
 class StudentServicoUtilizado(db.Model):
     __tablename__ = "student_servicos_utilizados"
+
+    student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), primary_key=True)
+    item = db.Column(db.Text, primary_key=True)
+
+
+class StudentLocalAtendimento(db.Model):
+    __tablename__ = "student_locais_atendimento"
+
+    student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), primary_key=True)
+    item = db.Column(db.Text, primary_key=True)
+
+
+class StudentAtividadeExtra(db.Model):
+    __tablename__ = "student_atividades_extras_lista"
+
+    student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), primary_key=True)
+    item = db.Column(db.Text, primary_key=True)
+
+
+class StudentCronogramaAtividade(db.Model):
+    __tablename__ = "student_cronograma_atividades"
 
     student_id = db.Column(db.BigInteger, db.ForeignKey("students.id", ondelete="CASCADE"), primary_key=True)
     item = db.Column(db.Text, primary_key=True)

@@ -9,11 +9,14 @@ from sqlalchemy import func, text
 
 from app.database import db
 from app.models.students import (
+    StudentAtividadeExtra,
     Student,
     StudentAuditEvent,
     StudentBeneficio,
+    StudentCronogramaAtividade,
     StudentInteracaoSocial,
     StudentLocalLazer,
+    StudentLocalAtendimento,
     StudentMembroFamiliar,
     StudentPessoaAutorizada,
     StudentResponsavelLegal,
@@ -48,12 +51,22 @@ DOCS_DIR = _resolve_docs_dir()
 DATE_FIELDS = {"data_nascimento"}
 BOOL_FIELDS = {
     "ativo",
+    "evasao_escolar",
     "tem_problema_saude",
     "tem_restricoes",
     "usa_medicamentos",
     "tem_alergias",
     "tem_deficiencia",
+    "tem_bronquite",
+    "tem_falta_ar",
+    "acompanhamento_odontologico",
+    "tratamento_oftalmologico",
+    "usa_oculos",
+    "usa_lentes",
+    "restricao_fisica",
+    "permanece_sozinha_em_casa",
     "tem_supervisao",
+    "situacao_prioritaria",
     "termo_responsabilidade",
     "autorizacao_imagem",
 }
@@ -65,11 +78,17 @@ RELATED_LIST_FIELDS = {
     "beneficios",
     "interacao_social",
     "locais_lazer",
+    "locais_atendimento",
+    "atividades_extras_lista",
+    "cronograma_atividades",
     "servicos_utilizados",
 }
 ALLOWED_FIELDS = {
     "nome_completo",
     "foto_crianca",
+    "locomocao",
+    "locomocao_acompanhante",
+    "origem_encaminhamento",
     "data_nascimento",
     "idade",
     "naturalidade",
@@ -94,8 +113,10 @@ ALLOWED_FIELDS = {
     "estado_civil_pais",
     "contato_conjuge_nome",
     "contato_conjuge_telefone",
+    "contato_conjuge_frequencia",
     "tipo_domicilio",
     "renda_familiar",
+    "faixa_renda",
     "beneficio_outros",
     "ativo",
     "unidade",
@@ -105,6 +126,9 @@ ALLOWED_FIELDS = {
     "escola_professor",
     "escola_periodo",
     "historico_escolar",
+    "evasao_escolar",
+    "evasao_escolar_motivo",
+    "evasao_escolar_tempo",
     "ubs_referencia",
     "tem_problema_saude",
     "problema_saude_descricao",
@@ -117,9 +141,24 @@ ALLOWED_FIELDS = {
     "acompanhamentos",
     "tem_deficiencia",
     "deficiencia_descricao",
+    "tem_bronquite",
+    "tem_falta_ar",
+    "acompanhamento_odontologico",
+    "acompanhamento_odontologico_local",
+    "acompanhamento_odontologico_tempo",
+    "tratamento_oftalmologico",
+    "tratamento_oftalmologico_local",
+    "usa_oculos",
+    "usa_lentes",
+    "restricao_fisica",
+    "restricao_fisica_descricao",
+    "permanece_sozinha_em_casa",
     "tem_supervisao",
     "supervisao_descricao",
     "atividades_extras",
+    "frequencia_interacao",
+    "situacao_prioritaria",
+    "observacoes_gerais",
     "termo_responsabilidade",
     "autorizacao_imagem",
     "autorizacao_saida",
@@ -247,6 +286,15 @@ def _insert_related(student_id, payload):
     for item in {value for value in normalized.get("locais_lazer", []) if value}:
         db.session.add(StudentLocalLazer(student_id=student_id, item=item))
 
+    for item in {value for value in normalized.get("locais_atendimento", []) if value}:
+        db.session.add(StudentLocalAtendimento(student_id=student_id, item=item))
+
+    for item in {value for value in normalized.get("atividades_extras_lista", []) if value}:
+        db.session.add(StudentAtividadeExtra(student_id=student_id, item=item))
+
+    for item in {value for value in normalized.get("cronograma_atividades", []) if value}:
+        db.session.add(StudentCronogramaAtividade(student_id=student_id, item=item))
+
     for item in {value for value in normalized.get("servicos_utilizados", []) if value}:
         db.session.add(StudentServicoUtilizado(student_id=student_id, item=item))
 
@@ -258,6 +306,9 @@ def _replace_related(student_id, payload):
     StudentBeneficio.query.filter_by(student_id=student_id).delete()
     StudentInteracaoSocial.query.filter_by(student_id=student_id).delete()
     StudentLocalLazer.query.filter_by(student_id=student_id).delete()
+    StudentLocalAtendimento.query.filter_by(student_id=student_id).delete()
+    StudentAtividadeExtra.query.filter_by(student_id=student_id).delete()
+    StudentCronogramaAtividade.query.filter_by(student_id=student_id).delete()
     StudentServicoUtilizado.query.filter_by(student_id=student_id).delete()
     _insert_related(student_id, payload)
 
@@ -302,9 +353,25 @@ def _load_student_graph(student_id):
     beneficios = StudentBeneficio.query.filter_by(student_id=student_id).all()
     interacao = StudentInteracaoSocial.query.filter_by(student_id=student_id).all()
     lazer = StudentLocalLazer.query.filter_by(student_id=student_id).all()
+    locais_atendimento = StudentLocalAtendimento.query.filter_by(student_id=student_id).all()
+    atividades_extras = StudentAtividadeExtra.query.filter_by(student_id=student_id).all()
+    cronograma = StudentCronogramaAtividade.query.filter_by(student_id=student_id).all()
     servicos = StudentServicoUtilizado.query.filter_by(student_id=student_id).all()
     transporte = StudentTransporte.query.filter_by(student_id=student_id).first()
-    return student, responsaveis, membros, autorizadas, beneficios, interacao, lazer, servicos, transporte
+    return (
+        student,
+        responsaveis,
+        membros,
+        autorizadas,
+        beneficios,
+        interacao,
+        lazer,
+        locais_atendimento,
+        atividades_extras,
+        cronograma,
+        servicos,
+        transporte,
+    )
 
 
 def _serialize_student_full(
@@ -315,6 +382,9 @@ def _serialize_student_full(
     beneficios,
     interacao,
     lazer,
+    locais_atendimento,
+    atividades_extras,
+    cronograma,
     servicos,
     transporte,
 ):
@@ -322,6 +392,9 @@ def _serialize_student_full(
         "id": str(student.id),
         "nome_completo": student.nome_completo,
         "foto_crianca": student.foto_crianca,
+        "locomocao": student.locomocao,
+        "locomocao_acompanhante": student.locomocao_acompanhante,
+        "origem_encaminhamento": student.origem_encaminhamento,
         "data_nascimento": _serialize_value(student.data_nascimento),
         "idade": student.idade,
         "naturalidade": student.naturalidade,
@@ -346,8 +419,10 @@ def _serialize_student_full(
         "estado_civil_pais": student.estado_civil_pais,
         "contato_conjuge_nome": student.contato_conjuge_nome,
         "contato_conjuge_telefone": student.contato_conjuge_telefone,
+        "contato_conjuge_frequencia": student.contato_conjuge_frequencia,
         "tipo_domicilio": student.tipo_domicilio,
         "renda_familiar": student.renda_familiar,
+        "faixa_renda": student.faixa_renda,
         "beneficio_outros": student.beneficio_outros,
         "ativo": student.ativo,
         "unidade": student.unidade,
@@ -357,6 +432,9 @@ def _serialize_student_full(
         "escola_professor": student.escola_professor,
         "escola_periodo": student.escola_periodo,
         "historico_escolar": student.historico_escolar,
+        "evasao_escolar": student.evasao_escolar,
+        "evasao_escolar_motivo": student.evasao_escolar_motivo,
+        "evasao_escolar_tempo": student.evasao_escolar_tempo,
         "ubs_referencia": student.ubs_referencia,
         "tem_problema_saude": student.tem_problema_saude,
         "problema_saude_descricao": student.problema_saude_descricao,
@@ -369,9 +447,24 @@ def _serialize_student_full(
         "acompanhamentos": student.acompanhamentos,
         "tem_deficiencia": student.tem_deficiencia,
         "deficiencia_descricao": student.deficiencia_descricao,
+        "tem_bronquite": student.tem_bronquite,
+        "tem_falta_ar": student.tem_falta_ar,
+        "acompanhamento_odontologico": student.acompanhamento_odontologico,
+        "acompanhamento_odontologico_local": student.acompanhamento_odontologico_local,
+        "acompanhamento_odontologico_tempo": student.acompanhamento_odontologico_tempo,
+        "tratamento_oftalmologico": student.tratamento_oftalmologico,
+        "tratamento_oftalmologico_local": student.tratamento_oftalmologico_local,
+        "usa_oculos": student.usa_oculos,
+        "usa_lentes": student.usa_lentes,
+        "restricao_fisica": student.restricao_fisica,
+        "restricao_fisica_descricao": student.restricao_fisica_descricao,
+        "permanece_sozinha_em_casa": student.permanece_sozinha_em_casa,
         "tem_supervisao": student.tem_supervisao,
         "supervisao_descricao": student.supervisao_descricao,
         "atividades_extras": student.atividades_extras,
+        "frequencia_interacao": student.frequencia_interacao,
+        "situacao_prioritaria": student.situacao_prioritaria,
+        "observacoes_gerais": student.observacoes_gerais,
         "termo_responsabilidade": student.termo_responsabilidade,
         "autorizacao_imagem": student.autorizacao_imagem,
         "autorizacao_saida": student.autorizacao_saida,
@@ -420,6 +513,9 @@ def _serialize_student_full(
         "beneficios": [item.beneficio for item in beneficios],
         "interacao_social": [item.item for item in interacao],
         "locais_lazer": [item.item for item in lazer],
+        "locais_atendimento": [item.item for item in locais_atendimento],
+        "atividades_extras_lista": [item.item for item in atividades_extras],
+        "cronograma_atividades": [item.item for item in cronograma],
         "servicos_utilizados": [item.item for item in servicos],
         "transporte": (
             {
