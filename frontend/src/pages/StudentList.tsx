@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchBackend, useStudents } from '@/contexts/StudentContext';
+import { mapToWordPayload } from '@/utils/mapToWordPayload';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -128,18 +129,27 @@ const downloadContractPdf = async (student: any) => {
   setDownloadingId(student.id);
 
   try {
+    const studentRes = await fetchBackend(`/students/${student.id}`, {
+      headers: {
+        accept: "application/json",
+      },
+    });
+
+    if (!studentRes.ok) {
+      throw new Error("Nao foi possivel carregar os dados completos do aluno.");
+    }
+
+    const fullStudent = await studentRes.json();
+
+    const payload = mapToWordPayload(fullStudent);
+
     const res = await fetchBackend(`/documents/emitir_todos`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         accept: "application/zip",
       },
-      body: JSON.stringify({
-        ...student,
-
-        autorizacaoImagem: student.autorizacaoImagem,
-        autorizacao_saida: student.autorizacaoSaida,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
