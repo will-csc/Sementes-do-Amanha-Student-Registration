@@ -11,12 +11,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { toast } from 'sonner';
 import { UserPlus, Save, Plus, X, User, Users, HeartPulse, HandHelping, FileCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { mapToWordPayload } from '@/utils/mapToWordPayload';
 
 import SectionDadosPessoais from '@/components/student-form/SectionDadosPessoais';
 import SectionResponsaveis from '@/components/student-form/SectionResponsaveis';
 import SectionSaudeEscolaridade from '@/components/student-form/SectionSaudeEscolaridade';
 import SectionConvivencia from '@/components/student-form/SectionConvivencia';
 import SectionTermos from '@/components/student-form/SectionTermos';
+
 
 type FormData = Omit<Student, 'id'>;
 
@@ -246,171 +248,6 @@ function normalize(value?: string) {
 
 function simNao(value?: boolean) {
   return value ? "sim" : "nao";
-}
-
-function mapToWordPayload(student: any) {
-  return {
-    // ===== DADOS PRINCIPAIS =====
-    nomeCompleto: student.nomeCompleto,
-    dataNascimento: student.dataNascimento,
-    idade: student.idade,
-    naturalidade: student.naturalidade,
-    racaCor: student.racaCor,
-    sexo: student.sexo,
-    rg: student.rg,
-    cpf: student.cpf,
-    nis: student.nis,
-    crasReferencia: student.crasReferencia,
-
-    // ===== ENDEREÇO =====
-    enderecoLogradouro: student.enderecoLogradouro,
-    enderecoNumero: student.enderecoNumero,
-    enderecoBairro: student.enderecoBairro,
-    enderecoCidade: student.enderecoCidade,
-    enderecoCep: student.enderecoCep,
-
-    // ===== PAIS =====
-    nomePai: student.nomePai,
-    nomeMae: student.nomeMae,
-
-    // ===== RESPONSÁVEIS =====
-    responsaveisLegais: student.responsaveisLegais,
-
-    // ===== ESCOLAR =====
-    escola: student.escolaNome,
-    serie: student.escolaSerie,
-    periodo_escolar: student.escolaPeriodo,
-
-    matriculado: student.escolaNome ? "sim" : "nao",
-
-    // ===== SAÚDE =====
-    ubs_referencia: student.ubsReferencia,
-    problema_saude: simNao(student.temProblemaSaude),
-    problema_saude_qual: student.problemaSaudeDescricao,
-
-    restricao_alimentar: simNao(student.temRestricoes),
-    restricao_alimentar_qual: student.restricoesDescricao,
-
-    deficiencia: simNao(student.temDeficiencia),
-    deficiencia_qual: student.deficienciaDescricao,
-
-    // ===== CAMPOS CONTROLADOS =====
-    tipo_domicilio: normalize(student.tipoDomicilio),
-    estado_civil: normalize(student.estadoCivilPais),
-
-    origem: "outros",
-    vai: "acompanhado",
-
-    // ===== ORIGEM =====
-    origem_demanda: "",
-    origem_conselho: "",
-    origem_pais: "",
-    origem_internet: "",
-    origem_cras: "",
-    origem_outros: "X",
-
-    // ===== COMO VEM =====
-    vai_sozinho: "",
-    vai_acompanhado: "X",
-
-    // ===== RESPONSÁVEIS =====
-    responsavel_1_nome: student.responsaveisLegais?.[0]?.nome || "",
-    responsavel_1_rg: student.responsaveisLegais?.[0]?.rg || "",
-    responsavel_1_cpf: student.responsaveisLegais?.[0]?.cpf || "",
-    responsavel_1_celular: student.responsaveisLegais?.[0]?.telefone || "",
-    responsavel_1_parentesco: student.responsaveisLegais?.[0]?.parentesco || "",
-
-    responsavel_2_nome: student.responsaveisLegais?.[1]?.nome || "",
-    responsavel_2_rg: student.responsaveisLegais?.[1]?.rg || "",
-    responsavel_2_cpf: student.responsaveisLegais?.[1]?.cpf || "",
-    responsavel_2_celular: student.responsaveisLegais?.[1]?.telefone || "",
-    responsavel_2_parentesco: student.responsaveisLegais?.[1]?.parentesco || "",
-
-    // ===== COMPOSIÇÃO FAMILIAR =====
-    familiar_1: student.membrosFamiliares?.[0]?.nome || "",
-    parentesco_1: student.membrosFamiliares?.[0]?.parentesco || "",
-    profissao_1: student.membrosFamiliares?.[0]?.profissao || "",
-    renda_1: student.membrosFamiliares?.[0]?.renda || "",
-
-    familiar_2: student.membrosFamiliares?.[1]?.nome || "",
-    parentesco_2: student.membrosFamiliares?.[1]?.parentesco || "",
-    profissao_2: student.membrosFamiliares?.[1]?.profissao || "",
-    renda_2: student.membrosFamiliares?.[1]?.renda || "",
-
-    // continue até familiar_6...
-
-    // ===== INTERAÇÃO =====
-    interage_familia: "X",
-    interage_amigos: "",
-    interage_parentes: "",
-
-    // ===== ATENDIMENTO =====
-    atendimento_ubs: "X",
-    atendimento_caps: "",
-    atendimento_hospital: "",
-    atendimento_ser: "",
-    atendimento_outros: "",
-
-    // ===== BOOLEANOS =====
-    fica_sozinho: simNao(!student.temSupervisao),
-    outras_atividades: simNao(!!student.atividadesExtras),
-
-    certidao: student.certidaoTermo || "",
-    folha: student.certidaoFolha || "",
-    livro: student.certidaoLivro || "",
-
-    ano_escolar: student.escolaAno,
-    parou_escola: student.historicoEscolar ? "sim" : "nao",
-    nome_professor: student.escolaProfessor,
-
-    composicao_familiar: student.membrosFamiliares || [], 
-
-    "alergia": student.temAlergias ? "SIM" : "NÃO",
-    alergia_qual: student.alergiasDescricao,
-
-    contato_conjuge: student.contatoConjugeNome ? "sim" : "nao",
-
-    // ===== LISTAS =====
-    beneficios: (student.beneficios || []).map(normalize),
-
-    servicos: (student.servicosUtilizados || []).map(normalize),
-
-    atendimentos: [], // pode melhorar depois
-
-    onde: (student.locaisLazer || []).map(normalize),
-
-    atividade: student.atividadesExtras
-      ? ["outros"]
-      : [],
-
-    // ===== INTERAÇÃO =====
-    interage: "sempre",
-    interage_com: [],
-
-    // ===== TERMO DE IMAGEM =====
-
-    nome_crianca: student.nomeCompleto,
-    nacionalidade_crianca: student.naturalidade || "Brasileira",
-    idade_crianca: student.idade,
-
-    nome_responsavel: student.responsaveisLegais?.[0]?.nome || student.nomeMae || "",
-    rg_responsavel: student.responsaveisLegais?.[0]?.rg || "",
-    cpf_responsavel: student.responsaveisLegais?.[0]?.cpf || "",
-
-    endereco_responsavel: [
-      student.enderecoLogradouro,
-      student.enderecoNumero,
-      student.enderecoBairro
-    ]
-    .filter(Boolean)
-    .join(", "),
-
-    autorizacaoImagem: student.autorizacaoImagem,
-    autorizacao_saida: student.autorizacaoSaida,
-
-    autorizacao_imagem_autoriza: student.autorizacaoImagem ? "X" : "",
-    autorizacao_imagem_nao_autoriza: !student.autorizacaoImagem ? "X" : "",
-  };
 }
 
 const StudentForm = () => {
