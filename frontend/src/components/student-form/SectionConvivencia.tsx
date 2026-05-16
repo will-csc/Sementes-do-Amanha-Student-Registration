@@ -11,6 +11,9 @@ const interacaoOptions = [
   "Prefere ficar isolado",
   "Apresenta agressividade",
   "Timidez excessiva",
+  "Família", 
+  "Amigos", 
+  "Parentes"
 ];
 
 const lazerOptions = [
