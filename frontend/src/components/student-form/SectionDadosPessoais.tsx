@@ -24,10 +24,16 @@ export default function SectionDadosPessoais({
   data,
   onChange,
   errors,
+  onLookupCep,
+  isCepLoading,
+  cepLookupMessage,
 }: {
   data: Omit<Student, "id">;
   onChange: (field: string, value: any) => void;
   errors?: Record<string, string | undefined>;
+  onLookupCep?: () => void;
+  isCepLoading?: boolean;
+  cepLookupMessage?: string;
 }) {
   const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -252,16 +258,25 @@ export default function SectionDadosPessoais({
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField
-          label="CEP"
-          id="enderecoCep"
-          type="text"
-          value={formatCep(data.enderecoCep)}
-          onChange={(v) => onChange("enderecoCep", onlyDigits(v).slice(0, 8))}
-          inputMode="numeric"
-          maxLength={9}
-          error={errors?.enderecoCep}
-        />
+        <div className="space-y-2">
+          <Label htmlFor="enderecoCep">CEP</Label>
+          <Input
+            id="enderecoCep"
+            type="text"
+            value={formatCep(data.enderecoCep)}
+            onChange={(e) => onChange("enderecoCep", onlyDigits(e.target.value).slice(0, 8))}
+            onBlur={onLookupCep}
+            inputMode="numeric"
+            maxLength={9}
+            className={errors?.enderecoCep ? "border-destructive focus-visible:ring-destructive" : undefined}
+          />
+          {errors?.enderecoCep && <p className="text-sm text-destructive">{errors.enderecoCep}</p>}
+          {!errors?.enderecoCep && cepLookupMessage && (
+            <p className="text-sm text-muted-foreground">
+              {isCepLoading ? "Consultando CEP..." : cepLookupMessage}
+            </p>
+          )}
+        </div>
         <FormField
           label="Logradouro"
           id="enderecoLogradouro"

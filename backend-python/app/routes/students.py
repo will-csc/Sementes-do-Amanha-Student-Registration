@@ -195,6 +195,56 @@ def _string_or_none(value):
     return str(value)
 
 
+def _normalized_text(value):
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _find_duplicate_student(payload, exclude_id=None):
+    query = Student.query
+    if exclude_id is not None:
+        query = query.filter(Student.id != exclude_id)
+
+    cpf = _normalized_text(payload.get("cpf"))
+    if cpf:
+        existing = query.filter(Student.cpf == cpf).first()
+        if existing:
+            return existing, "Ja existe um aluno cadastrado com este CPF."
+
+    rg = _normalized_text(payload.get("rg"))
+    if rg:
+        existing = query.filter(Student.rg == rg).first()
+        if existing:
+            return existing, "Ja existe um aluno cadastrado com este RG."
+
+    certidao_termo = _normalized_text(payload.get("certidao_termo"))
+    certidao_folha = _normalized_text(payload.get("certidao_folha"))
+    certidao_livro = _normalized_text(payload.get("certidao_livro"))
+    if certidao_termo and certidao_folha and certidao_livro:
+        existing = (
+            query.filter(Student.certidao_termo == certidao_termo)
+            .filter(Student.certidao_folha == certidao_folha)
+            .filter(Student.certidao_livro == certidao_livro)
+            .first()
+        )
+        if existing:
+            return existing, "Ja existe um aluno cadastrado com esta certidao."
+
+    nome_completo = _normalized_text(payload.get("nome_completo"))
+    data_nascimento = payload.get("data_nascimento")
+    if nome_completo and data_nascimento:
+        existing = (
+            query.filter(func.lower(func.trim(Student.nome_completo)) == nome_completo.lower())
+            .filter(Student.data_nascimento == data_nascimento)
+            .first()
+        )
+        if existing:
+            return existing, "Ja existe um aluno cadastrado com este nome e data de nascimento."
+
+    return None, None
+
+
 def _actor_headers():
     user_id = request.headers.get("X-User-Id", type=int)
     email = request.headers.get("X-User-Email", type=str) or "api@local"
@@ -612,6 +662,10 @@ def create_student():
     normalized = _normalize_student_payload(data)
     normalized.update(_actor_headers())
 
+    _, duplicate_message = _find_duplicate_student(normalized)
+    if duplicate_message:
+        return jsonify({"error": duplicate_message}), 409
+
     try:
         student = Student(**normalized)
         db.session.add(student)
@@ -658,6 +712,12 @@ def update_student(student_id):
     student = Student.query.get_or_404(student_id)
     data = _get_request_payload()
     normalized = _normalize_student_payload(data)
+    merged = {field.name: getattr(student, field.name) for field in Student.__table__.columns}
+    merged.update(normalized)
+
+    _, duplicate_message = _find_duplicate_student(merged, exclude_id=student_id)
+    if duplicate_message:
+        return jsonify({"error": duplicate_message}), 409
 
     try:
         before = _fetch_serialized_student(student_id)
@@ -799,9 +859,7 @@ def get_admin_stats():
     except Exception:
         pending_accounts = 0
 
-    alunos_adicionados = (
-        db.session.query(func.count(StudentAuditEvent.id)).filter(StudentAuditEvent.action == "create").scalar() or 0
-    )
+    total_alunos = db.session.query(func.count(Student.id)).scalar() or 0
     alteracoes_em_alunos = (
         db.session.query(func.count(StudentAuditEvent.id)).filter(StudentAuditEvent.action == "update").scalar() or 0
     )
@@ -810,7 +868,7 @@ def get_admin_stats():
         {
             "approvedAccounts": approved_accounts,
             "pendingAccounts": pending_accounts,
-            "alunosAdicionados": alunos_adicionados,
+            "alunosAdicionados": total_alunos,
             "alteracoesEmAlunos": alteracoes_em_alunos,
         }
     )

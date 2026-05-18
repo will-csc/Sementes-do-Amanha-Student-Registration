@@ -29,7 +29,7 @@ function renderAccountStatus(status: string) {
 
 export default function Settings() {
   const { accounts, approveAccount, rejectAccount, deleteAccount, user } = useAuth();
-  const { auditEvents } = useStudents();
+  const { auditEvents, students } = useStudents();
 
   const pendingAccounts = useMemo(() => accounts.filter((a) => a.status === "pending"), [accounts]);
   const approvedAccounts = useMemo(() => accounts.filter((a) => a.status === "approved"), [accounts]);
@@ -57,7 +57,6 @@ export default function Settings() {
 
   const recentUpdates = useMemo(() => auditEvents.filter((e) => e.action === "update").slice(0, 50), [auditEvents]);
 
-  const totalCreates = useMemo(() => auditEvents.filter((e) => e.action === "create").length, [auditEvents]);
   const totalUpdates = useMemo(() => auditEvents.filter((e) => e.action === "update").length, [auditEvents]);
 
   const [adminStats, setAdminStats] = useState<{
@@ -202,10 +201,10 @@ export default function Settings() {
               </Card>
               <Card className="shadow-card">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Alunos adicionados</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total de alunos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">{adminStats?.alunosAdicionados ?? totalCreates}</p>
+                  <p className="text-2xl font-bold">{adminStats?.alunosAdicionados ?? students.length}</p>
                 </CardContent>
               </Card>
               <Card className="shadow-card">

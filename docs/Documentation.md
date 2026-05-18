@@ -132,14 +132,14 @@ Com isso, espera-se que a comunidade perceba ganhos concretos na organizacao int
 
 | Etapa | Atividade | Responsavel | Periodo | Status |
 | --- | --- | --- | --- | --- |
-| 1 | Levantamento de requisitos com a comunidade/parceiro | `[Preencher]` | `[Preencher]` | Concluido |
-| 2 | Analise do processo atual e definicao do problema | `[Preencher]` | `[Preencher]` | Concluido |
-| 3 | Prototipacao e definicao da estrutura do sistema | `[Preencher]` | `[Preencher]` | Concluido |
-| 4 | Desenvolvimento do frontend | `[Preencher]` | `[Preencher]` | Concluido |
-| 5 | Desenvolvimento do backend e integracao com banco | `[Preencher]` | `[Preencher]` | Concluido |
-| 6 | Estruturacao da geracao de documentos | `[Preencher]` | `[Preencher]` | Concluido |
-| 7 | Testes, ajustes e validacao com o contexto do projeto | `[Preencher]` | `[Preencher]` | Em andamento |
-| 8 | Registro de evidencias e elaboracao do relatorio final | `[Preencher]` | `[Preencher]` | Em andamento |
+| 1 | Levantamento de requisitos com a comunidade/parceiro | Eduardo, William e Sabrina | 07/03 até 21/03 | Concluido |
+| 2 | Analise do processo atual e definicao do problema | William | 14/03 até 21/03 | Concluido |
+| 3 | Prototipacao e definicao da estrutura do sistema | William |  14/03 até 21/03 | Concluido |
+| 4 | Desenvolvimento do frontend | William | 21/03 até 11/04 | Concluido |
+| 5 | Desenvolvimento do backend e integracao com banco | João, Gabriel, Sabrina e Eduardo | 11/04 até 02/05 | Concluido |
+| 6 | Estruturacao da geracao de documentos | João | 02/05 até 09/05 | Concluido |
+| 7 | Testes, ajustes e validacao com o contexto do projeto | Gabriel e Sabrina | 09/05 até 16/05 | Em andamento |
+| 8 | Registro de evidencias e elaboracao do relatorio final | William | 16/05 até 22/05 | Em andamento |
 
 ---
 

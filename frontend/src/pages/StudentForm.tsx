@@ -72,6 +72,15 @@ type ValidationError = {
   message: string;
 };
 
+type ViaCepResponse = {
+  cep?: string;
+  logradouro?: string;
+  bairro?: string;
+  localidade?: string;
+  uf?: string;
+  erro?: boolean;
+};
+
 function validateForms(items: { tabIndex: number; data: FormData }[]): ValidationError[] {
   const errors: ValidationError[] = [];
   const added = new Set<string>();
@@ -271,6 +280,12 @@ const StudentForm = () => {
   const [showCopy, setShowCopy] = useState(false);
   const [copyMode, setCopyMode] = useState<"all" | "selected">("all");
   const [copySelected, setCopySelected] = useState<boolean[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCepLoading, setIsCepLoading] = useState(false);
+  const [cepLookupMessage, setCepLookupMessage] = useState("");
+  const [lastCepLookupByTab, setLastCepLookupByTab] = useState<Record<number, string>>({});
+
+  const form = tabs[activeTab] ?? tabs[0] ?? { ...emptyStudent };
 
   useEffect(() => {
     let active = true;
@@ -304,7 +319,91 @@ const StudentForm = () => {
     }, 0);
   }, []);
 
+  const updateTabFields = useCallback((tabIndex: number, fields: Partial<FormData>) => {
+    setTabs((prev) => prev.map((tab, index) => (index === tabIndex ? { ...tab, ...fields } : tab)));
+  }, []);
+
+  const lookupCep = useCallback(
+    async (tabIndex: number, rawCep: string, force = false) => {
+      const cep = digitsOnly(rawCep);
+      if (cep.length !== 8) {
+        if (tabIndex === activeTab) {
+          setCepLookupMessage("");
+        }
+        return;
+      }
+
+      if (!force && lastCepLookupByTab[tabIndex] === cep) {
+        return;
+      }
+
+      setIsCepLoading(true);
+      if (tabIndex === activeTab) {
+        setCepLookupMessage("Consultando CEP...");
+      }
+
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+          headers: { accept: "application/json" },
+        });
+        if (!response.ok) {
+          throw new Error("Nao foi possivel consultar o CEP.");
+        }
+
+        const data = (await response.json()) as ViaCepResponse;
+        if (data.erro) {
+          throw new Error("CEP nao encontrado.");
+        }
+
+        updateTabFields(tabIndex, {
+          enderecoCep: digitsOnly(data.cep || cep).slice(0, 8),
+          enderecoLogradouro: data.logradouro || "",
+          enderecoBairro: data.bairro || "",
+          enderecoCidade: data.localidade || "",
+          enderecoUf: (data.uf || "").toUpperCase() as FormData["enderecoUf"],
+        });
+        setLastCepLookupByTab((prev) => ({ ...prev, [tabIndex]: cep }));
+
+        if (tabIndex === activeTab) {
+          setCepLookupMessage("Endereco preenchido automaticamente pelo CEP.");
+        }
+      } catch (error) {
+        if (tabIndex === activeTab) {
+          const message = error instanceof Error ? error.message : "Nao foi possivel consultar o CEP.";
+          setCepLookupMessage(message);
+        }
+      } finally {
+        setIsCepLoading(false);
+      }
+    },
+    [activeTab, lastCepLookupByTab, updateTabFields],
+  );
+
+  useEffect(() => {
+    setCepLookupMessage("");
+  }, [activeTab]);
+
+  useEffect(() => {
+    const cep = digitsOnly(form.enderecoCep);
+    if (cep.length !== 8) {
+      return;
+    }
+    void lookupCep(activeTab, cep);
+  }, [activeTab, form.enderecoCep, lookupCep]);
+
   const handleChange = (field: string, value: any) => {
+    if (field === "enderecoCep") {
+      const cep = digitsOnly(String(value));
+      setCepLookupMessage("");
+      setLastCepLookupByTab((prev) => {
+        if (!(activeTab in prev)) return prev;
+        if (prev[activeTab] === cep) return prev;
+        const next = { ...prev };
+        delete next[activeTab];
+        return next;
+      });
+    }
+
     setTabs(prev => {
       const next = prev.map((tab, i) =>
         i === activeTab ? { ...tab, [field]: value } : tab
@@ -345,36 +444,37 @@ const StudentForm = () => {
   };
 
   const downloadZip = async (student: any) => {
-  const payload = mapToWordPayload(student);
+    const payload = mapToWordPayload(student);
 
-  const res = await fetchBackend(`/documents/emitir_todos`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      // Mudamos para aceitar ZIP
-      accept: "application/zip",
-    },
-    body: JSON.stringify(payload),
-  });
+    const res = await fetchBackend(`/documents/emitir_todos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        accept: "application/zip",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!res.ok) {
-    throw new Error(friendlyDocumentError(res.status));
-  }
+    if (!res.ok) {
+      throw new Error(friendlyDocumentError(res.status));
+    }
 
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
 
-  const a = document.createElement("a");
-  a.href = url;
-  // Nome do arquivo baixado vira .zip
-  a.download = `Documentos_${student.nomeCompleto || "Aluno"}.zip`;
-  a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Documentos_${student.nomeCompleto || "Aluno"}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
 
-  window.setTimeout(() => URL.revokeObjectURL(url), 10000);
-};
+    window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     const items = (isEditing ? [{ tabIndex: 0, data: tabs[0] }] : tabs.map((t, i) => ({ tabIndex: i, data: t })));
     const errs = validateForms(items);
     if (errs.length > 0) {
@@ -385,6 +485,7 @@ const StudentForm = () => {
     }
     try {
       if (isEditing && id) {
+        setIsSubmitting(true);
         const updated = await updateStudent(id, tabs[0]);
         await downloadZip(updated);
         toast.success('Aluno atualizado com sucesso!');
@@ -393,6 +494,7 @@ const StudentForm = () => {
         setSelected(tabs.map(() => true));
         setShowConfirm(true);
       } else {
+        setIsSubmitting(true);
         const created = await addStudent(tabs[0]);
         await downloadZip(created);
         toast.success('Aluno cadastrado com sucesso!');
@@ -400,10 +502,13 @@ const StudentForm = () => {
       }
     } catch (e) {
       toastError(e, 'Falha ao salvar aluno.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleConfirmRegister = async () => {
+    if (isSubmitting) return;
     const toRegister = tabs.filter((_, i) => selected[i]);
     if (toRegister.length === 0) {
       toast.error('Selecione ao menos um aluno.', { id: 'validation:select-aluno' });
@@ -420,6 +525,7 @@ const StudentForm = () => {
       focusField(errs[0].tabIndex, errs[0].fieldId);
       return;
     }
+    setIsSubmitting(true);
     try {
       for (const form of toRegister) {
         const created = await addStudent(form);
@@ -430,6 +536,8 @@ const StudentForm = () => {
       navigate('/students');
     } catch (e) {
       toastError(e, 'Falha ao cadastrar alunos.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -547,7 +655,6 @@ const StudentForm = () => {
     setShowCopy(false);
   };
 
-  const form = tabs[activeTab];
   const activeErrors = useMemo(() => {
     if (!showValidation) return {};
     const out: Record<string, string> = {};
@@ -682,7 +789,16 @@ const StudentForm = () => {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2 pb-4">
-                      {section.value === 'dados-pessoais' && <SectionDadosPessoais data={form} onChange={handleChange} errors={activeErrors} />}
+                      {section.value === 'dados-pessoais' && (
+                        <SectionDadosPessoais
+                          data={form}
+                          onChange={handleChange}
+                          errors={activeErrors}
+                          onLookupCep={() => void lookupCep(activeTab, form.enderecoCep, true)}
+                          isCepLoading={isCepLoading}
+                          cepLookupMessage={cepLookupMessage}
+                        />
+                      )}
                       {section.value === 'responsaveis' && <SectionResponsaveis data={form} onChange={handleChange} errors={activeErrors} />}
                       {section.value === 'saude-escolaridade' && <SectionSaudeEscolaridade data={form} onChange={handleChange} errors={activeErrors} />}
                       {section.value === 'convivencia' && <SectionConvivencia data={form} onChange={handleChange} errors={activeErrors} />}
@@ -693,14 +809,14 @@ const StudentForm = () => {
               </Accordion>
 
               <div className="flex gap-3 pt-6">
-                <Button type="submit" className="flex-1" size="lg">
+                <Button type="submit" className="flex-1" size="lg" disabled={isSubmitting}>
                   {isEditing
-                    ? 'Salvar Alterações'
+                    ? (isSubmitting ? 'Salvando...' : 'Salvar Alterações')
                     : tabs.length > 1
-                      ? `Cadastrar ${tabs.length} Alunos`
-                      : 'Cadastrar Aluno'}
+                      ? (isSubmitting ? 'Cadastrando...' : `Cadastrar ${tabs.length} Alunos`)
+                      : (isSubmitting ? 'Cadastrando...' : 'Cadastrar Aluno')}
                 </Button>
-                <Button type="button" variant="outline" size="lg" onClick={() => navigate('/students')}>
+                <Button type="button" variant="outline" size="lg" onClick={() => navigate('/students')} disabled={isSubmitting}>
                   Cancelar
                 </Button>
               </div>
@@ -709,7 +825,10 @@ const StudentForm = () => {
         </Card>
       </div>
 
-      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+      <Dialog open={showConfirm} onOpenChange={(open) => {
+        if (isSubmitting) return;
+        setShowConfirm(open);
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Confirmar cadastro</DialogTitle>
@@ -733,9 +852,11 @@ const StudentForm = () => {
             ))}
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowConfirm(false)}>Cancelar</Button>
-            <Button onClick={handleConfirmRegister}>
-              Cadastrar {selected.filter(Boolean).length} aluno{selected.filter(Boolean).length !== 1 ? 's' : ''}
+            <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={isSubmitting}>Cancelar</Button>
+            <Button onClick={handleConfirmRegister} disabled={isSubmitting}>
+              {isSubmitting
+                ? 'Cadastrando...'
+                : `Cadastrar ${selected.filter(Boolean).length} aluno${selected.filter(Boolean).length !== 1 ? 's' : ''}`}
             </Button>
           </DialogFooter>
         </DialogContent>
