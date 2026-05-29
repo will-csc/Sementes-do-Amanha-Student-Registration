@@ -114,3 +114,4 @@ If the primary fails, it tries the fallback; if both fail, the process exits.
 ## Documentation
 
 - PT-BR guide: [docs/README.md](docs/README.md)
+- Appresentation: https://youtu.be/mXXjI3GmW20?si=Ja78MY-mGygCHnfm
